@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Grading",
+      "setup": "sudo -H pip3 install -r requirements.txt",
+      "run": "pytest --tb=no",
+      "input": "",
+      "output": "",
+      "comparison": "included",
+      "timeout": 3,
+      "points": null
+    }
+  ]
+}
