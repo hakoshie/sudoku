@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
-def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_close=2,prior_close=False,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=1e-1,erase_line=1,white_thres=255):
+def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_close=2,prior_close=False,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.15,clf_f_name="KNei",clf_f=None,scaler_f=None):
     try:
         image = cv2.imread(path, cv2.IMREAD_COLOR)
     except Exception as e:
@@ -17,19 +17,32 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     if clf is None:
         clf=pd.read_pickle('./pickle/rf_clf.pickle')
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # 外縁を切る
+    trim_percentage=0.001
+    height, width, channels = image.shape[:3]
+    trim_width = int(width * trim_percentage)
+    trim_height = int(height * trim_percentage)
+    image = image[trim_height:height - trim_height, trim_width:width - trim_width]
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     # print(image.shape)
     # ぼかし処理
-    gray_gb = cv2.GaussianBlur(gray, None, 3.0)
-    # gray_gb= cv2.bilateralFilter(gray, 11, 0.5, 5)
-
+    # gray_gb = cv2.GaussianBlur(gray, None, 3.0)
+    gray_gb= cv2.bilateralFilter(gray, 11, 0.5, 5)
+    ##########################
     ## エッジ検出、輪郭抽出
+    ############################
     thr, binary = cv2.threshold(gray_gb, 0, 255, cv2.THRESH_OTSU)
-    new_thr = min(int(thr * 1.05), 255)
+
+    ########################################
+    ## level 2ではこれをすると死ぬ
+    #######################################
+    new_thr = min(int(thr * otsu_times), 255)
     _, binary = cv2.threshold(gray_gb, new_thr, 255, cv2.THRESH_BINARY)
+
     # # plt.imshow(binary, cmap="gray")
     # plt.title("Otsu's binarization (threshold={:d})".format(int(thr)))
     # # plt.show()
+
     edge = cv2.Canny(binary, 100, 200)
     edge = cv2.dilate(edge, np.ones((11, 11), dtype=edge.dtype),iterations=1)
     edge = cv2.erode(edge, np.ones((9, 9), dtype=edge.dtype),iterations=1)
@@ -78,16 +91,17 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     
     x, y, w, h = cv2.boundingRect(approx)
     cropped = image[y:y+h, x:x+w]
-
     # plt.imshow(cropped)
     # plt.show()
     # print(approx)
     approx=approx-(x,y)
-    # print(approx)
     src_pts = approx.reshape((-1, 2)).astype("float32")
+    center = np.mean(src_pts, axis=0)
+    # ４点を重心からの角度でソートする
+    # 時計回りになる
+    src_pts = np.array(sorted(src_pts, key=lambda p: np.arctan2(p[1]-center[1], p[0]-center[0])))
 
-
-    # src_pts = np.array([approx[0], approx[1], approx[2], approx[3]], dtype="float32")
+    # 結果を表示する
     # print(src_pts)
     # 縦横比の計算
     w = np.linalg.norm(src_pts[3] - src_pts[0])
@@ -96,8 +110,10 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
 
     # 新しい画像サイズを設定
     new_w = int(1000*aspect)
+    # new_w = 1000
     new_h = 1000
-    dst_pts = np.array([(0, 0), (0, new_h), (new_w, new_h), (new_w, 0)], dtype="float32")
+    # dst_pts = np.array([(0, 0), (0, new_h), (new_w, new_h), (new_w, 0)], dtype="float32")
+    dst_pts = np.array([(0, 0), (new_w, 0), (new_w, new_h), (0, new_h)], dtype="float32")
 
     # 射影変換を計算して、パースをキャンセルする
     warp = cv2.getPerspectiveTransform(src_pts, dst_pts)
@@ -188,99 +204,98 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     # Display the image with the lines
     # plt.imshow(result, cmap="gray")
     # plt.show()
-    result=result
 
     # scaler_f=pd.read_pickle("./pickle/knn_scaler_flip.pickle")
     # clf_f=pd.read_pickle("./pickle/knn_clf_flip.pickle")
 
-    # scaler_f=pd.read_pickle("./pickle/rf_scaler_flip.pickle")
+    # scaler_f=pd.read_pickle("./pickle/rf_flip_scaler.pickle")
     # clf_f=pd.read_pickle("./pickle/rf_clf_flip.pickle")
 
-    problems=[]
-    flip_proba=[]
     # pixel=28
-    # scaler = pd.read_pickle('./pickle/svc_rbf_scaler.pickle')
-    # clf=pd.read_pickle('./pickle/svc_rbf_clf.pickle')
+    if clf_f is None:
+        scaler_f = pd.read_pickle(f'./pickle/{clf_f_name}_flip_scaler.pickle')
+        clf_f=pd.read_pickle(f'./pickle/{clf_f_name}_flip_clf.pickle')
+
+    results=[result,np.rot90(result,1),np.rot90(result,3)]
+    pixel_f=200
+    proba=[]
+    for res in results:
+        res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
+        res_gr=cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
+        try:
+            prob=clf_f.predict_proba(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
+        # print(prob)
+            proba.append(prob[0][1])
+        except:
+            prob=clf_f.predict(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
+            proba.append(prob[0])
+            # print(prob)
+    res_idx=np.argmax(proba)
+    result=results[res_idx]
     if ret_img:
         return result
-    results=[result, cv2.rotate(result,cv2.ROTATE_90_CLOCKWISE), cv2.rotate(result,cv2.ROTATE_180), cv2.rotate(result,cv2.ROTATE_90_COUNTERCLOCKWISE)]
-    for result in results:
-        # result: RGB
-        ## get mean white
+    
 
-        cropped = result.copy()
-        h,w,_=cropped.shape
-        cropped_rs=cv2.resize(cropped,(max(h,w),max(h,w)),interpolation=cv2.INTER_AREA)
-        cropped_gr=cv2.cvtColor(result, cv2.COLOR_RGB2GRAY) # 白地
+    cropped = result.copy()
+    h,w,_=cropped.shape
+    cropped_rs=cv2.resize(cropped,(max(h,w),max(h,w)),interpolation=cv2.INTER_AREA)
+    cropped_gr=cv2.cvtColor(result, cv2.COLOR_RGB2GRAY) # 白地
 
 
-        # # plt.imshow(cropped_rs)
-        # # plt.show()
-        # 内側の細い線を塗りつぶす
-        if prior_close:
-            # closing
-            cropped_cl = cv2.dilate(cropped_rs, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
-            cropped_cl= cv2.erode(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
-            # opening
-            cropped_cl = cv2.erode(cropped_rs, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
-            cropped_cl = cv2.dilate(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
-        else:
-            # opening
-            cropped_cl = cv2.erode(cropped_rs, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
-            cropped_cl = cv2.dilate(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
-            # closing
-            cropped_cl = cv2.dilate(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
-            cropped_cl= cv2.erode(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
-            
-        # # plt.imshow(cropped_cl,cmap="gray")
-        # # plt.show()
-
-        cropped_cl_gr=cv2.cvtColor(cropped_cl, cv2.COLOR_RGB2GRAY)
-        thr, binary = cv2.threshold(cropped_cl_gr, 0, 255, cv2.THRESH_OTSU)
-        # new_thr = min(int(thr * 1.3), 255)
-        # _, binary = cv2.threshold(cropped_region_gr, new_thr, 255, cv2.THRESH_BINARY)
-
-        binary=cv2.resize(binary,(pixel*9,pixel*9),interpolation=cv2.INTER_AREA)
-
-        # binary=cv2.medianBlur(binary,3)
-        # # whether it is flipped or not
+    # # plt.imshow(cropped_rs)
+    # # plt.show()
+    # 内側の細い線を塗りつぶす
+    if prior_close:
+        # closing
+        cropped_cl = cv2.dilate(cropped_rs, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
+        cropped_cl= cv2.erode(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
+        # opening
+        cropped_cl = cv2.erode(cropped_rs, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
+        cropped_cl = cv2.dilate(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
+    else:
+        # opening
+        cropped_cl = cv2.erode(cropped_rs, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
+        cropped_cl = cv2.dilate(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
+        # closing
+        cropped_cl = cv2.dilate(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
+        cropped_cl= cv2.erode(cropped_cl, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
         
-        # digit=cv2.resize(binary,(1000,1000),interpolation=cv2.INTER_AREA)
-        # digit=digit.reshape(1,-1)
-        # digit=scaler_f.transform(digit)
-        # pred=clf_f.predict_proba(digit)
-        # print(pred,np.argmax(pred))
-        # flip_proba.append(pred[0][0])
-        # flag=np.argmax(pred)
-        # if flag:
-        # plt.imshow(binary,cmap="gray")
-        # # plt.show()
-        # plot i,j th component
-        # i,j=0,3
-        # # plt.imshow(binary[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel], cmap='gray')
+    # # plt.imshow(cropped_cl,cmap="gray")
+    # # plt.show()
 
-        # # plt.show()
-        predicted_numbers = []
-        for i in range(9):
-            for j in range(9):
-                digit_square = binary[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel]
-                if np.mean(digit_square)>=white_thres:
-                    predicted_numbers.append(0)
-                    continue
-                digit_square = digit_square.reshape(1, -1)/255.0
-                digit_square=scaler.transform(digit_square)
-                prediction = clf.predict(digit_square)
-                predicted_digit = np.argmax(prediction)
-                predicted_numbers.append(prediction[0])
-        problem=[]
-        for i in range(0, len(predicted_numbers), 9):
-            problem.append(predicted_numbers[i:i+9])
-            # print(predicted_digits[i:i+9])
-        problems.append(problem)
+    cropped_cl_gr=cv2.cvtColor(cropped_cl, cv2.COLOR_RGB2GRAY)
+    thr, binary = cv2.threshold(cropped_cl_gr, 0, 255, cv2.THRESH_OTSU)
+    # new_thr = min(int(thr * 1.3), 255)
+    # _, binary = cv2.threshold(cropped_region_gr, new_thr, 255, cv2.THRESH_BINARY)
+
+    binary=cv2.resize(binary,(pixel*9,pixel*9),interpolation=cv2.INTER_AREA)
+
+    # binary=cv2.medianBlur(binary,3)
+    # plot i,j th component
+    # i,j=0,3
+    # # plt.imshow(binary[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel], cmap='gray')
+
+    # # plt.show()
+    predicted_numbers = []
+    for i in range(9):
+        for j in range(9):
+            digit_square = binary[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel]
+            if np.mean(digit_square)>=white_thres:
+                predicted_numbers.append(0)
+                continue
+            digit_square = digit_square.reshape(1, -1)/255.0
+            digit_square=scaler.transform(digit_square)
+            prediction = clf.predict(digit_square)
+            predicted_digit = np.argmax(prediction)
+            predicted_numbers.append(prediction[0])
+    problem=[]
+    for i in range(0, len(predicted_numbers), 9):
+        problem.append(predicted_numbers[i:i+9])
+        # print(predicted_numbers[i:i+9])
 
     # stdが低いものがよさそう
     # for problem in problems:
     #     nonzeros=np.count_nonzero(problem)
     #     print(nonzeros,np.std(problem),np.mean(problem))
     # problem=problems[0]
-    return problems
+    return problem
