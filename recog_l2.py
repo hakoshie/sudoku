@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
-def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_close=2,prior_close=False,trim_percentage=0.008):
+def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_close=2,prior_close=False,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=1e-1,erase_line=1,white_thres=255):
     try:
         image = cv2.imread(path, cv2.IMREAD_COLOR)
     except Exception as e:
@@ -20,13 +20,13 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     # print(image.shape)
     # ぼかし処理
-    # gray_gb = cv2.GaussianBlur(gray, None, 3.0)
-    gray_gb= cv2.bilateralFilter(gray, 11, 0.5, 5)
+    gray_gb = cv2.GaussianBlur(gray, None, 3.0)
+    # gray_gb= cv2.bilateralFilter(gray, 11, 0.5, 5)
 
-    # 大津の二値化
+    ## エッジ検出、輪郭抽出
     thr, binary = cv2.threshold(gray_gb, 0, 255, cv2.THRESH_OTSU)
     new_thr = min(int(thr * 1.05), 255)
-    _, binary = cv2.threshold(gray, new_thr, 255, cv2.THRESH_BINARY)
+    _, binary = cv2.threshold(gray_gb, new_thr, 255, cv2.THRESH_BINARY)
     # # plt.imshow(binary, cmap="gray")
     # plt.title("Otsu's binarization (threshold={:d})".format(int(thr)))
     # # plt.show()
@@ -48,7 +48,7 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     for cnt in contours:
         # 輪郭線の長さを計算
         arclen = cv2.arcLength(cnt, True)
-        approx=cv2.approxPolyDP(cnt, arclen * 1e-1, True)
+        approx=cv2.approxPolyDP(cnt, arclen * arc_epsilon, True)
         area=cv2.contourArea(cnt)
         x, y, w, h = cv2.boundingRect(approx)
         internal_area_ratio = area / (w * h)
@@ -68,7 +68,7 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     # # plt.show()
     # print(len(longest_cnt))
     arclen = cv2.arcLength(longest_cnt, True)
-    approx = cv2.approxPolyDP(longest_cnt, arclen * 1e-1, True)
+    approx = cv2.approxPolyDP(longest_cnt, arclen * arc_epsilon, True)
 
     cv2.drawContours(result, [approx], -1, (255, 0, 0), 3, cv2.LINE_AA)
     # plt.imshow(result)
@@ -122,9 +122,10 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     white_region = result.copy()
     idx=binary_image!=0
     # mean_white = np.median(white_region[idx],axis=0)
-    # mean_white = np.mean(white_region[idx],axis=0)
-    # 赤にするとなぜかうまくいく
-    mean_white = np.mean(white_region[idx])
+    # 赤にするとなぜかうまくいく, 0の閾値の関係で、0ありで訓練したモデルを使っているとき
+    # mean_white = np.mean(white_region[idx],axis=None)
+    mean_white = np.mean(white_region[idx],axis=mean_white_axis)
+    
     # print(mean_white)
     # plt.imshow(binary_image, cmap="gray")
     # plt.imshow(binary_image!=0, cmap="gray")
@@ -135,53 +136,54 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     trim_height = int(height * trim_percentage)
     result = result[trim_height:height - trim_height, trim_width:width - trim_width]
     # plt.imshow(result)
-    gray=cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
-    # Threshold the image to create a binary image
-    # Smooth the image
-    gray = cv2.GaussianBlur(gray, (5, 5), 0)
+    if erase_line:
+        gray=cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
+        # Threshold the image to create a binary image
+        # Smooth the image
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    # Detect edges using Canny edge detection
-    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        # Detect edges using Canny edge detection
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
 
-    # Detect lines using Hough line detection
-    lines = cv2.HoughLines(edges, 1, np.pi/180, 200)
+        # Detect lines using Hough line detection
+        lines = cv2.HoughLines(edges, 1, np.pi/180, 200)
 
-    # Plot the detected lines on the image
-    for line in lines:
-        rho, theta = line[0]
-        a = np.cos(theta)
-        b = np.sin(theta)
-        x0 = a * rho
-        y0 = b * rho
-        x1 = int(x0 + 1000 * (-b))
-        y1 = int(y0 + 1000 * (a))
-        x2 = int(x0 - 1000 * (-b))
-        y2 = int(y0 - 1000 * (a))
-        cv2.line(result, (x1, y1), (x2, y2), (mean_white), 15)
+        # Plot the detected lines on the image
+        for line in lines:
+            rho, theta = line[0]
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a * rho
+            y0 = b * rho
+            x1 = int(x0 + 1000 * (-b))
+            y1 = int(y0 + 1000 * (a))
+            x2 = int(x0 - 1000 * (-b))
+            y2 = int(y0 - 1000 * (a))
+            cv2.line(result, (x1, y1), (x2, y2), (mean_white), 15)
 
-    # Display the image with the detected lines
-    # plt.imshow(result, cmap="gray")
-    # plt.show()
-    # Display the result
-    # Load the image
-    image = result
+        # Display the image with the detected lines
+        # plt.imshow(result, cmap="gray")
+        # plt.show()
+        # Display the result
+        # Load the image
+        image = result
 
-    # Define the size of the lines
-    line_size = int(min(image.shape[:2]) / 9)
+        # Define the size of the lines
+        line_size = int(min(image.shape[:2]) / 9)
 
-    # Define the spacing between the lines
-    line_spacing = line_size
-    # print(line_size, line_spacing)
-    # Create a copy of the image to draw the lines on
-    result = image.copy()
+        # Define the spacing between the lines
+        line_spacing = line_size
+        # print(line_size, line_spacing)
+        # Create a copy of the image to draw the lines on
+        result = image.copy()
 
-    # Draw the vertical lines
-    for x in range(line_size, image.shape[1], line_spacing):
-        cv2.line(result, (x, 0), (x, image.shape[0]), (mean_white), thickness=25)
+        # Draw the vertical lines
+        for x in range(0, image.shape[1], line_spacing):
+            cv2.line(result, (x, 0), (x, image.shape[0]), (mean_white), thickness=25)
 
-    # Draw the horizontal lines
-    for y in range(line_size, image.shape[0], line_spacing):
-        cv2.line(result, (0, y), (image.shape[1], y), (mean_white), thickness=25)
+        # Draw the horizontal lines
+        for y in range(0, image.shape[0], line_spacing):
+            cv2.line(result, (0, y), (image.shape[1], y), (mean_white), thickness=25)
 
     # Display the image with the lines
     # plt.imshow(result, cmap="gray")
@@ -262,7 +264,7 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
         for i in range(9):
             for j in range(9):
                 digit_square = binary[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel]
-                if np.mean(digit_square)>250:
+                if np.mean(digit_square)>=white_thres:
                     predicted_numbers.append(0)
                     continue
                 digit_square = digit_square.reshape(1, -1)/255.0
