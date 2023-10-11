@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
-def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_close=2,prior_close=False,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.15,clf_f_name="KNei",clf_f=None,scaler_f=None):
+
+def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_close=2,prior_close=False,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVC",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
     try:
         image = cv2.imread(path, cv2.IMREAD_COLOR)
     except Exception as e:
@@ -27,7 +28,7 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     # print(image.shape)
     # ぼかし処理
     # gray_gb = cv2.GaussianBlur(gray, None, 3.0)
-    gray_gb= cv2.bilateralFilter(gray, 11, 0.5, 5)
+    gray_gb= cv2.bilateralFilter(gray, 11, sigmaColor, sigmaSpace)
     ##########################
     ## エッジ検出、輪郭抽出
     ############################
@@ -44,8 +45,8 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     # # plt.show()
 
     edge = cv2.Canny(binary, 100, 200)
-    edge = cv2.dilate(edge, np.ones((11, 11), dtype=edge.dtype),iterations=1)
-    edge = cv2.erode(edge, np.ones((9, 9), dtype=edge.dtype),iterations=1)
+    edge = cv2.dilate(edge, np.ones((5, 5), dtype=edge.dtype),iterations=1)
+    edge = cv2.erode(edge, np.ones((3, 3), dtype=edge.dtype),iterations=1)
     # res_close = cv2.morphologyEx(binary, cv2.MORPH_OPEN, np.ones((5, 5), dtype=binary.dtype))
     # # plt.imshow(edge, cmap="gray")
     # plt.title("After morphology operation".format(thr))
@@ -211,7 +212,9 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     # scaler_f=pd.read_pickle("./pickle/rf_flip_scaler.pickle")
     # clf_f=pd.read_pickle("./pickle/rf_clf_flip.pickle")
 
-    # pixel=28
+    #########################################
+    ## classify flipped
+    #########################################
     if clf_f is None:
         scaler_f = pd.read_pickle(f'./pickle/{clf_f_name}_flip_scaler.pickle')
         clf_f=pd.read_pickle(f'./pickle/{clf_f_name}_flip_clf.pickle')
@@ -276,6 +279,11 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=2,n_clos
     # # plt.imshow(binary[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel], cmap='gray')
 
     # # plt.show()
+    # results=[result,np.rot90(result,1),np.rot90(result,3)]
+    # pixel_f=200
+    # stds=[]
+    # for res in results:
+    #     res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
     predicted_numbers = []
     for i in range(9):
         for j in range(9):
