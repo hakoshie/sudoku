@@ -5,7 +5,7 @@ import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
 
-def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVC",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
+def recognize(path,clf=None,scaler=None,pixel=20,ret_img=False,n_open=3,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVC",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,pixel_f=150):
 
     try:
         image = cv2.imread(path, cv2.IMREAD_COLOR)
@@ -15,9 +15,12 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_clos
     if pixel is None:
         pixel=60
     if scaler is None:
-        scaler = pd.read_pickle('./pickle/Rand_numbers_line_3_scaler.pickle')
+            # scaler = pd.read_pickle('./models/Rand_numbers_mix_l2_scaler.pickle')
+            scaler = pd.read_pickle('./models/MLPC_numbers_mix_scaler.pickle')
     if clf is None:
-        clf=pd.read_pickle('./pickle/Rand_numbers_line_3_clf.pickle')
+        # clf = pd.read_pickle('./models/Rand_numbers_mix_l2_clf.pickle')
+        clf=pd.read_pickle('./models/MLPC_numbers_mix_clf.pickle')
+        
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     # 外縁を切る
     trim_percentage=0.001
@@ -221,11 +224,14 @@ def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_clos
         clf_f=pd.read_pickle(f'./pickle/{clf_f_name}_flip_clf.pickle')
 
     results=[result,np.rot90(result,1),np.rot90(result,3)]
-    pixel_f=200
+    if pixel_f is None:
+        pixel_f=200
     proba=[]
     for res in results:
         res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
         res_gr=cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
+        
+
         try:
             prob=clf_f.predict_proba(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
         # print(prob)
