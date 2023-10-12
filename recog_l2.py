@@ -5,7 +5,7 @@ import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
 
-def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_close=2,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVC",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
+def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVC",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
 
     try:
         image = cv2.imread(path, cv2.IMREAD_COLOR)

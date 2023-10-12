@@ -5,18 +5,14 @@ import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
 
-def recognize(image,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_close=2,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVC",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
-    # try:
-    #     image = cv2.imread(path, cv2.IMREAD_COLOR)
-    # except Exception as e:
-    #     print("cannot read image",e)
-    #     return
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=3,n_close=2,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVC",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
+    # image:RGB image
     if pixel is None:
         pixel=60
     if scaler is None:
-        scaler = pd.read_pickle('./pickle/ensemble5_scaler.pickle')
+        scaler = pd.read_pickle('./models/Rand_numbers_mix_l2_scaler.pickle')
     if clf is None:
-        clf=pd.read_pickle('./pickle/ensemble5_clf.pickle')
+        clf=pd.read_pickle('./models/Rand_numbers_mix_l2_clf.pickle')
     # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     # 外縁を切る
     trim_percentage=0.001
@@ -216,8 +212,8 @@ def recognize(image,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_clo
     ## classify flipped
     #########################################
     if clf_f is None:
-        scaler_f = pd.read_pickle(f'./pickle/{clf_f_name}_flip_scaler.pickle')
-        clf_f=pd.read_pickle(f'./pickle/{clf_f_name}_flip_clf.pickle')
+        scaler_f = pd.read_pickle(f'./models/{clf_f_name}_flip_scaler.pickle')
+        clf_f=pd.read_pickle(f'./models/{clf_f_name}_flip_clf.pickle')
 
     results=[result,np.rot90(result,1),np.rot90(result,3)]
     pixel_f=200
