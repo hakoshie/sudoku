@@ -5,20 +5,19 @@ import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
 
-def recognize(path,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_close=2,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVC",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
-
-    try:
-        image = cv2.imread(path, cv2.IMREAD_COLOR)
-    except Exception as e:
-        print("cannot read image",e)
-        return
+def recognize(image,clf=None,scaler=None,pixel=None,ret_img=False,n_open=3,n_close=2,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVC",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
+    # try:
+    #     image = cv2.imread(path, cv2.IMREAD_COLOR)
+    # except Exception as e:
+    #     print("cannot read image",e)
+    #     return
     if pixel is None:
         pixel=60
     if scaler is None:
-        scaler = pd.read_pickle('./pickle/Rand_numbers_line_3_scaler.pickle')
+        scaler = pd.read_pickle('./pickle/ensemble5_scaler.pickle')
     if clf is None:
-        clf=pd.read_pickle('./pickle/Rand_numbers_line_3_clf.pickle')
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        clf=pd.read_pickle('./pickle/ensemble5_clf.pickle')
+    # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     # 外縁を切る
     trim_percentage=0.001
     height, width, channels = image.shape[:3]
