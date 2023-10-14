@@ -1,38 +1,30 @@
+import glob
 import os
 import re
-import sys
-import glob
-import logging
-from logging import INFO
 
+import colorama
 import cv2
 import numpy as np
 import pytest
+
 from sudoku import solve
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
-EXTRA_DIR = os.path.join(CUR_DIR, "extra")
-if os.path.exists(EXTRA_DIR) and len(list(os.listdir(EXTRA_DIR))) != 0:
-    DATA_DIR = os.path.join(EXTRA_DIR, "data", "sudoku")
-else:
-    DATA_DIR = os.path.join(CUR_DIR, "data")
-
-
-logger = logging.getLogger(__file__)
-
-np.random.seed(31415)
+DATA_DIR = os.path.join(CUR_DIR, "data")
 
 
 def get_test_data():
+    rng = np.random.RandomState(31415)
+
     levels = [1, 2, 3]
     data = []
     for level in levels:
         image_paths = glob.glob(os.path.join(DATA_DIR, "level{:d}/*.jpg".format(level)))
+        if len(image_paths) > 10:
+            idx = rng.choice(len(image_paths), 10)
+            image_paths = [image_paths[i] for i in idx]
+            image_paths = sorted(image_paths)
         data.extend([(path, level) for path in image_paths])
-
-    if len(data) > 10:
-        idx = np.random.choice(len(data), 10)
-        data = [data[i] for i in idx]
 
     return data
 
@@ -44,21 +36,62 @@ def check(answer, problem):
         return (False, "Recognized numbers may be wrong")
 
     # check each row
+    nums = list(range(1, 10))
     for i in range(9):
         s = set(answer[i])
-        if 0 in s or len(s) != 9:
+
+        ok = True
+        if 0 in s:
+            ok = False
+
+        if len(s) != 9:
+            ok = False
+
+        for n in nums:
+            if n not in s:
+                ok = False
+                break
+
+        if not ok:
             return (False, "A row does not contain all numbers 1-9")
 
     for j in range(9):
         s = set(answer[:, j])
-        if 0 in s or len(s) != 9:
+
+        ok = True
+        if 0 in s:
+            ok = False
+
+        if len(s) != 9:
+            ok = False
+
+        for n in nums:
+            if n not in s:
+                ok = False
+                break
+
+        if not ok:
             return (False, "A column does not contain all numbers 1-9")
 
     for i in range(0, 9, 3):
         for j in range(0, 9, 3):
             blk = answer[i : i + 3, j : j + 3].flatten()
             s = set(blk)
-            if 0 in s or len(s) != 9:
+
+            ok = True
+
+            if 0 in s:
+                ok = False
+
+            if len(s) != 9:
+                ok = False
+
+            for n in nums:
+                if n not in s:
+                    ok = False
+                    break
+
+            if not ok:
                 return (False, "A block does not contain all numbers 1-9")
 
     return (True, "Success")
@@ -81,16 +114,18 @@ class Sudoku(object):
 
 @pytest.fixture(scope="session")
 def score():
-    score = np.zeros((1), dtype="int32")
-    yield score
+    colorama.init()
+    s = np.zeros((1), dtype="int32")
 
-    logger.info("Your score: {:d}\n".format(score.item()))
+    yield s
+
+    print()
+    print(colorama.Back.BLUE + "[INFO] Your score is {:d}".format(s.item()), end="")
+    print(colorama.Style.RESET_ALL)
 
 
 @pytest.mark.parametrize("image_path, level", get_test_data())
-def test_solve(image_path, level, score, caplog):
-    caplog.set_level(INFO)
-
+def test_solve(image_path: str, level: int, score):
     basename = os.path.splitext(image_path)[0]
     answer_path = basename + ".txt"
     sudoku = Sudoku(image_path, answer_path)
@@ -99,7 +134,9 @@ def test_solve(image_path, level, score, caplog):
     assert isinstance(output, np.ndarray), "Return NumPy's NDArray!"
     assert output.dtype == np.int32, "Return NumPy array with int32 data type!"
     assert output.ndim == 2, "#dimensions of NumPy array must be 2!"
-    assert output.shape[0] == 9 and output.shape[1] == 9, "Size of the NumPy array must be 9x9!"
+    assert (
+        output.shape[0] == 9 and output.shape[1] == 9
+    ), "Size of the NumPy array must be 9x9!"
 
     succ, msg = check(output, sudoku.problem)
     if succ:

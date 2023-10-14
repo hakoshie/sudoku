@@ -165,6 +165,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     binary = cv2.dilate(binary, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
     # binary=cv2.GaussianBlur(binary,None ,2)
     # edges = cv2.Canny(binary,100,200)
+    
     # 輪郭を検出する
     contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 

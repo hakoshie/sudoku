@@ -1,3 +1,0 @@
-[submodule "extra"]
-	path = extra
-	url = git@github.com:tatsy/1284-sds-lib-advml.git
