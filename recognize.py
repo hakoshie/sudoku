@@ -205,11 +205,6 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=3,n_close
     # plt.imshow(result, cmap="gray")
     # plt.show()
 
-    # scaler_f=pd.read_pickle("./pickle/knn_scaler_flip.pickle")
-    # clf_f=pd.read_pickle("./pickle/knn_clf_flip.pickle")
-
-    # scaler_f=pd.read_pickle("./pickle/rf_flip_scaler.pickle")
-    # clf_f=pd.read_pickle("./pickle/rf_clf_flip.pickle")
 
     #########################################
     ## classify flipped
@@ -272,18 +267,6 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=3,n_close
     # _, binary = cv2.threshold(cropped_region_gr, new_thr, 255, cv2.THRESH_BINARY)
 
     binary=cv2.resize(binary,(pixel*9,pixel*9),interpolation=cv2.INTER_AREA)
-
-    # binary=cv2.medianBlur(binary,3)
-    # plot i,j th component
-    # i,j=0,3
-    # # plt.imshow(binary[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel], cmap='gray')
-
-    # # plt.show()
-    # results=[result,np.rot90(result,1),np.rot90(result,3)]
-    # pixel_f=200
-    # stds=[]
-    # for res in results:
-    #     res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
     predicted_numbers = []
     for i in range(9):
         for j in range(9):
