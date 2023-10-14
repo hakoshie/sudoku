@@ -164,9 +164,11 @@ training_data/
 *.xlsx
 *.jpg
 *.txt
+!data/**/*.txt
+!data/**/*.jpg
 *.pdf
-data/
 extra/
 pickle/
 memo.md
 lec/
+*.zip
