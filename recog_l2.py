@@ -5,7 +5,7 @@ import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
 
-def recognize(path,clf=None,scaler=None,pixel=20,ret_img=False,n_open=3,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVClinear",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,pixel_f=120):
+def recognize(path,clf=None,scaler=None,pixel=20,ret_img=False,n_open=3,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=255,otsu_times=1.22,clf_f_name="SVClinear",clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,pixel_f=120,detect_rotate=1):
 
     try:
         image = cv2.imread(path, cv2.IMREAD_COLOR)
@@ -219,29 +219,30 @@ def recognize(path,clf=None,scaler=None,pixel=20,ret_img=False,n_open=3,n_close=
     #########################################
     ## classify flipped
     #########################################
-    if clf_f is None:
-        scaler_f = pd.read_pickle(f'./pickle/{clf_f_name}_flip_scaler.pickle')
-        clf_f=pd.read_pickle(f'./pickle/{clf_f_name}_flip_clf.pickle')
+    if detect_rotate:
+        if clf_f is None:
+            scaler_f = pd.read_pickle(f'./pickle/{clf_f_name}_flip_scaler.pickle')
+            clf_f=pd.read_pickle(f'./pickle/{clf_f_name}_flip_clf.pickle')
 
-    results=[result,np.rot90(result,1),np.rot90(result,3)]
-    if pixel_f is None:
-        pixel_f=200
-    proba=[]
-    for res in results:
-        res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
-        res_gr=cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
-        
+        results=[result,np.rot90(result,1),np.rot90(result,3)]
+        if pixel_f is None:
+            pixel_f=200
+        proba=[]
+        for res in results:
+            res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
+            res_gr=cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
+            
 
-        try:
-            prob=clf_f.predict_proba(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
-        # print(prob)
-            proba.append(prob[0][1])
-        except:
-            prob=clf_f.predict(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
-            proba.append(prob[0])
+            try:
+                prob=clf_f.predict_proba(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
             # print(prob)
-    res_idx=np.argmax(proba)
-    result=results[res_idx]
+                proba.append(prob[0][1])
+            except:
+                prob=clf_f.predict(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
+                proba.append(prob[0])
+                # print(prob)
+        res_idx=np.argmax(proba)
+        result=results[res_idx]
     if ret_img:
         return result
     
