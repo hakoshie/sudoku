@@ -4,10 +4,8 @@ import numpy.typing as npt
 import pandas as pd
 # def solve(image: npt.NDArray[np.uint8]) -> npt.NDArray[np.int32]:
 #     return np.zeros((9, 9), dtype="int32")
-from itertools import product
 import recognize 
-import re
-import time
+# import time
 # Knuth's Algorithm X
 def dfs(df: pd.DataFrame):
     # 使い勝手のためにNumPy配列に変換
@@ -34,15 +32,14 @@ def dfs(df: pd.DataFrame):
 
     return None
 def solve(image):
-    start_time = time.time()
+    # start_time = time.time()
 
 # 処理を実行する
 # ...
     problem=np.array(recognize.recognize(image))
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-
-    print("処理時間: {:.3f}秒".format(elapsed_time))
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("処理時間: {:.3f}秒".format(elapsed_time))
     index = [
         "R{:d}C{:d}#{:d}".format(i, j, n)
         for i in range(1, 10)
@@ -94,42 +91,44 @@ def solve(image):
     if ans:
         for a in ans:
             # print(a)
-            _,r,c,n= re.split("[RC#]", a)
+            r=int(a[1])
+            c=int(a[3])
+            n=int(a[5])
             solution[int(r) - 1, int(c) - 1] = int(n)
     return solution
-def solve_back(image):
+# def solve_back(image):
     
-    problem = np.array(recognize.recognize(image))
-    stk = []
-    stk.append(problem.copy())
-    solution = np.ones((9, 9), dtype="int32") 
+#     problem = np.array(recognize.recognize(image))
+#     stk = []
+#     stk.append(problem.copy())
+#     solution = np.ones((9, 9), dtype="int32") 
 
-    while len(stk) != 0:
-        P = stk.pop()
-        success = True
-        for i, j in product(range(P.shape[0]), range(P.shape[1])):
-            if P[i, j] == 0:
-                success = False
-                row_nums = P[i, :]
-                col_nums = P[:, j]
-                k = 3 * (i // 3)
-                l = 3 * (j // 3)
-                blk_nums = P[k : k + 3, l : l + 3].flatten()
+#     while len(stk) != 0:
+#         P = stk.pop()
+#         success = True
+#         for i, j in product(range(P.shape[0]), range(P.shape[1])):
+#             if P[i, j] == 0:
+#                 success = False
+#                 row_nums = P[i, :]
+#                 col_nums = P[:, j]
+#                 k = 3 * (i // 3)
+#                 l = 3 * (j // 3)
+#                 blk_nums = P[k : k + 3, l : l + 3].flatten()
 
-                used_nums = np.concatenate([row_nums, col_nums, blk_nums])
-                unused_nums = [n for n in range(10) if not n in used_nums]
-                for n in unused_nums:
-                    new_P = P.copy()
-                    new_P[i, j] = n
-                    stk.append(new_P)
+#                 used_nums = np.concatenate([row_nums, col_nums, blk_nums])
+#                 unused_nums = [n for n in range(10) if not n in used_nums]
+#                 for n in unused_nums:
+#                     new_P = P.copy()
+#                     new_P[i, j] = n
+#                     stk.append(new_P)
 
-                # if the first empty cell is found, then,
-                # we don't need to see the following cells anymore.
-                break
+#                 # if the first empty cell is found, then,
+#                 # we don't need to see the following cells anymore.
+#                 break
 
-        if success:
-            solution = P.copy()
-            break
-    # print(solution)
+#         if success:
+#             solution = P.copy()
+#             break
+#     # print(solution)
 
-    return np.array(solution,dtype="int32")
+#     return np.array(solution,dtype="int32")
