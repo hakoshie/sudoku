@@ -38,7 +38,7 @@ def solve(image):
 
 # 処理を実行する
 # ...
-    problem=np.array(recognize.recognize(image,n_close=0,n_open=3,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,otsu_times=1.22))
+    problem=np.array(recognize.recognize(image))
     end_time = time.time()
     elapsed_time = end_time - start_time
 
