@@ -133,7 +133,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         warp = cv2.getPerspectiveTransform(src_pts, dst_pts)
         result = cv2.warpPerspective(cropped, warp, (new_w, new_h))
     except:
-        return None
+        return -1
 
     def is_square(sides):
         
