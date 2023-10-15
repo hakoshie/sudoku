@@ -264,7 +264,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         left_most = squares[i][0]
         print(left_most)
         current_pos = left_most
-        for j in range(8):
+        for j in range(2):
             min_dist = float('inf')
             next_square = None
             for cnt in not_visited:
@@ -286,10 +286,10 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
                 print(i,j)
                 continue
             cnt=cen2contours[(cx,cy)]
-            x, y, w, h = cv2.boundingRect(cnt)
-            cv2.drawContours(res3, [cnt], -1, (255,0,255), 2)
-            count += 1
-            cv2.putText(res3, str(count), (x, y+h), cv2.FONT_HERSHEY_PLAIN, 5, (255, 0, 0), 2, cv2.LINE_AA)
+            # x, y, w, h = cv2.boundingRect(cnt)
+            # cv2.drawContours(res3, [cnt], -1, (255,0,255), 2)
+            # count += 1
+            # cv2.putText(res3, str(count), (x, y+h), cv2.FONT_HERSHEY_PLAIN, 5, (255, 0, 0), 2, cv2.LINE_AA)
     # plt.imshow(res3)
     problem=np.zeros((9,9))
     pixel=20
