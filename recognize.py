@@ -5,7 +5,7 @@ import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close=1,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,white_thres=255,otsu_times=1.2,clf_f_name="SVClinear",pixel_f=120,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close=1,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,white_thres=255,otsu_times=1.2,clf_f_name="SVClinear",pixel_f=30,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
     # image:RGB image
     if pixel is None:
         pixel=60
@@ -111,9 +111,9 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     aspect = abs(w) / abs(h)
 
     # 新しい画像サイズを設定
-    new_w = int(1000*aspect)
-    # new_w = 1000
-    new_h = 1000
+    new_w = int(850*aspect)
+    
+    new_h =850
     # dst_pts = np.array([(0, 0), (0, new_h), (new_w, new_h), (new_w, 0)], dtype="float32")
     dst_pts = np.array([(0, 0), (new_w, 0), (new_w, new_h), (0, new_h)], dtype="float32")
 
@@ -123,26 +123,21 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     # print(result.shape)
     # result = cv2.warpPerspective(binary, warp, (new_w, new_h))
 
-    #　反転させたリストを作成
-
-    # for i, result in enumerate(results):
-
-        # plt.subplot(2, 2, i+1)
-        # # plt.imshow(result)
-        # plt.title("result {:d}".format(i))
 
     # plt.imshow(result, cmap="gray")
     # plt.show()
     # print(result.shape)
-    gray_result = cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
-    thresh, binary_image = cv2.threshold(gray_result, 0, 255, cv2.THRESH_OTSU)
+
+    ###########################
     # 白い領域の平均値を計算
-    white_region = result.copy()
-    idx=binary_image!=0
-    # mean_white = np.median(white_region[idx],axis=0)
-    # 赤にするとなぜかうまくいく, 0の閾値の関係で、0ありで訓練したモデルを使っているとき
-    # mean_white = np.mean(white_region[idx],axis=None)
-    mean_white = np.mean(white_region[idx],axis=mean_white_axis)
+    # ###########################
+    # gray_result = cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
+    # thresh, binary_image = cv2.threshold(gray_result, 0, 255, cv2.THRESH_OTSU)
+    
+    # white_region = result.copy()
+    # idx=binary_image!=0
+    # # mean_white = np.median(white_region[idx],axis=0)
+    # mean_white = np.mean(white_region[idx],axis=mean_white_axis)
     
     # print(mean_white)
     # plt.imshow(binary_image, cmap="gray")
@@ -214,14 +209,16 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     if clf_f is None:
         scaler_f = pd.read_pickle(f'./models/{clf_f_name}_flip_scaler.pickle')
         clf_f=pd.read_pickle(f'./models/{clf_f_name}_flip_clf.pickle')
-
-    results=[result,np.rot90(result,1),np.rot90(result,3)]
+    res=cv2.resize(result,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
+    # results=[result,np.rot90(result,1),np.rot90(result,3)]
+    res_gr=cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
+    res_rots=[np.rot90(res_gr,-1),res_gr,np.rot90(res_gr,1)]
     if pixel_f is None:
         pixel_f=200
     proba=[]
-    for res in results:
-        res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
-        res_gr=cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
+    for res_gr in res_rots:
+        # res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
+        
         try:
             prob=clf_f.predict_proba(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
         # print(prob)
@@ -231,7 +228,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
             proba.append(prob[0])
             # print(prob)
     res_idx=np.argmax(proba)
-    result=results[res_idx]
+    result=np.rot90(result,res_idx-1)
+    
     if ret_img:
         return result
     
@@ -239,7 +237,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     cropped = result.copy()
     h,w,_=cropped.shape
     cropped_rs=cv2.resize(cropped,(max(h,w),max(h,w)),interpolation=cv2.INTER_AREA)
-    cropped_gr=cv2.cvtColor(result, cv2.COLOR_RGB2GRAY) # 白地
+    # cropped_rs=cropped
+    # cropped_gr=cv2.cvtColor(result, cv2.COLOR_RGB2GRAY) # 白地
 
 
     # # plt.imshow(cropped_rs)

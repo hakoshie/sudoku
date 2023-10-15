@@ -6,6 +6,7 @@ import pandas as pd
 #     return np.zeros((9, 9), dtype="int32")
 import recognize 
 import sudoku_solver
+import time
 
 def solve(image):
     # start_time = time.time()
@@ -28,5 +29,7 @@ def solve(image):
         return np.ones((9,9),dtype=np.int32)
     if cnt==0:
         return np.ones((9,9),dtype=np.int32)
-    
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("処理時間: {:.3f}秒".format(elapsed_time))
     return np.array(ans,dtype=np.int32)
