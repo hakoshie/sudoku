@@ -13,8 +13,9 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
         # model_name="MLPC_numbers_mix_v3"
         # model_name="MLPC_numbers_mix_v2"
         # model_name="MLPC_numbers_mix_line3_v2_m"
-        model_name="Rand_numbers_mix_l2"
+        # model_name="Rand_numbers_mix_l2"
         # model_name="MLPC_numbers_mix"
+        model_name="ensemble_MLPC"
         scaler = pd.read_pickle(f'./models/{model_name}_scaler.pickle')        
         clf = pd.read_pickle(f'./models/{model_name}_clf.pickle')
         
