@@ -32,8 +32,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     if pixel is None:
         pixel=60
     if scaler is None or clf is None:
-        # model_name="MLPC_numbers_mix_v3"
-        model_name="MLPC_numbers_mix_v2"
+        model_name="MLPC_numbers_mix_v3"
+        # model_name="MLPC_numbers_mix_v2"
         # model_name="MLPC_numbers_mix_line3_v2_m"
         # model_name="Rand_numbers_mix_l2"
         # model_name="MLPC_numbers_mix"
