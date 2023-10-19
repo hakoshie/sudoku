@@ -70,29 +70,30 @@ def solve(image):
     ans=None
     try:
         for solution in sudoku_solver.solve_sudoku((3,3),problem):
+            if cnt>0:
+                break
             cnt+=1
             ans=np.array(solution)
-            if cnt>1:
-                break
+ 
     except:
         cnt=0
-        for i in range(3**5):
-            nums = [(i // 3**j) % 3 for j in range(5)]
+        for i in range(3**min(5,len(top_5_violations))):
+            candidate_idx = [(i // 3**j) % 3 for j in range(5)]
             problem_tmp=problem.copy()
-            for j,num in enumerate(nums):
+            for j,num in enumerate(candidate_idx):
                 i_x,j_y,_=top_5_violations[j]
                 num_ij=problem[i_x][j_y]
                 problem_tmp[i_x][j_y]=candidates[num_ij][num]
             try:
                 for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
                     cnt+=1
-                    i=1000
                     ans=np.array(solution)
                     if cnt>1:
                         break
                 if cnt>0:
                     break
             except:
+                cnt=0
                 continue
     if cnt==0:
         return np.ones((9,9),dtype=np.int32)
