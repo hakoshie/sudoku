@@ -30,6 +30,37 @@ def count_violations(board):
                 if np.count_nonzero(box == k) > 1:
                     violations += 1
     return violations
+def count_constraint_violations(board):
+    violations = []  # (i, j, 違反回数) のタプルを格納するリスト
+
+    for i in range(9):
+        for j in range(9):
+            num = board[i][j]
+            violation_count = 0  # 制約に違反している回数
+
+            if num != 0:
+                # 同じ列に同じ数字があるか確認
+                for k in range(9):
+                    if k != i and board[k][j] == num:
+                        violation_count += 1
+
+                # 同じ行に同じ数字があるか確認
+                for k in range(9):
+                    if k != j and board[i][k] == num:
+                        violation_count += 1
+
+                # 同じ3x3のブロックに同じ数字があるか確認
+                block_start_i = (i // 3) * 3
+                block_start_j = (j // 3) * 3
+                for x in range(3):
+                    for y in range(3):
+                        if (block_start_i + x != i or block_start_j + y != j) and board[block_start_i + x][block_start_j + y] == num:
+                            violation_count += 1
+
+            violations.append((i, j, violation_count))
+
+    return violations
+
 def solve(image):
     # start_time = time.time()
 
@@ -39,6 +70,23 @@ def solve(image):
     # end_time = time.time()
     # elapsed_time = end_time - start_time
     # print("処理時間: {:.3f}秒".format(elapsed_time))
+        # 違反回数で降順ソート
+    violations = count_constraint_violations(problem)
+    sorted_violations = sorted(violations, key=lambda x: x[2], reverse=True)
+    
+    # 上位5つのタプルを取得
+    top_5_violations = sorted_violations[:5]
+
+    candidates=[[0, 1, 9],
+    [1, 3, 2],
+    [2, 7, 3],
+    [3, 2, 1],
+    [4, 6, 1],
+    [5, 3, 6],
+    [6, 8, 5],
+    [7, 1, 2],
+    [8, 6, 2],
+    [9, 6, 3]]
     cnt=0
     ans=None
     try:
@@ -48,7 +96,23 @@ def solve(image):
             if cnt>1:
                 break
     except:
-        return np.ones((9,9),dtype=np.int32)
+
+        for i in range(3**5):
+            nums = [(i // 3**j) % 3 for j in range(5)]
+            problem_tmp=problem.copy()
+            for j,num in enumerate(nums):
+                i_x,j_y,_=top_5_violations[j]
+                num_ij=problem[i_x][j_y]
+                problem_tmp[i_x][j_y]=candidates[num_ij][num]
+            try:
+                for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
+                    cnt+=1
+                    i=1000
+                    ans=np.array(solution)
+                    if cnt>1:
+                        break
+            except:
+                continue
     if cnt==0:
         return np.ones((9,9),dtype=np.int32)
     # end_time = time.time()
