@@ -27,16 +27,16 @@ def count_violations(board):
                     violations += 1
     return violations
 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close=1,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,white_thres=255,otsu_times=1.2,clf_f_name="SVClinear",pixel_f=30,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,flip_judge=1):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close=1,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,white_thres=255,otsu_times=1.2,clf_f_name="SVClinear",pixel_f=30,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,flip_judge=0):
     # image:RGB image
     if pixel is None:
         pixel=60
     if scaler is None or clf is None:
-        model_name="MLPC_numbers_mix_v3"
+        # model_name="MLPC_numbers_mix_v3"
         # model_name="MLPC_numbers_mix_v2"
         # model_name="MLPC_numbers_mix_line3_v2_m"
         # model_name="Rand_numbers_mix_l2"
-        # model_name="MLPC_numbers_mix"
+        model_name="MLPC_numbers_mix"
         # model_name="ensemble_MLPC"
         scaler = pd.read_pickle(f'./models/{model_name}_scaler.pickle')        
         clf = pd.read_pickle(f'./models/{model_name}_clf.pickle')
