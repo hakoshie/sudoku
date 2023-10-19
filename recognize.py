@@ -4,8 +4,30 @@ import numpy as np
 import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler
+def count_violations(board):
+    violations = 0
+    # 行の制約をチェック
+    for i in range(9):
+        row = board[i, :]
+        for j in range(1, 10):
+            if np.count_nonzero(row == j) > 1:
+                violations += 1
+    # 列の制約をチェック
+    for j in range(9):
+        col = board[:, j]
+        for i in range(1, 10):
+            if np.count_nonzero(col == i) > 1:
+                violations += 1
+    # ボックスの制約をチェック
+    for i in range(0, 9, 3):
+        for j in range(0, 9, 3):
+            box = board[i:i+3, j:j+3].flatten()
+            for k in range(1, 10):
+                if np.count_nonzero(box == k) > 1:
+                    violations += 1
+    return violations
 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close=1,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,white_thres=255,otsu_times=1.2,clf_f_name="SVClinear",pixel_f=30,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close=1,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,white_thres=255,otsu_times=1.2,clf_f_name="SVClinear",pixel_f=30,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,flip_judge=0):
     # image:RGB image
     if pixel is None:
         pixel=60
@@ -205,33 +227,34 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     # plt.show()
 
 
+    if flip_judge:
     #########################################
     ## classify flipped
     #########################################
-    if clf_f is None:
-        scaler_f = pd.read_pickle(f'./models/{clf_f_name}_flip_scaler.pickle')
-        clf_f=pd.read_pickle(f'./models/{clf_f_name}_flip_clf.pickle')
-    res=cv2.resize(result,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
-    # results=[result,np.rot90(result,1),np.rot90(result,3)]
-    res_gr=cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
-    res_rots=[np.rot90(res_gr,-1),res_gr,np.rot90(res_gr,1)]
-    if pixel_f is None:
-        pixel_f=200
-    proba=[]
-    for res_gr in res_rots:
-        # res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
-        
-        try:
-            prob=clf_f.predict_proba(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
-        # print(prob)
-            proba.append(prob[0][1])
-        except:
-            prob=clf_f.predict(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
-            proba.append(prob[0])
+        if clf_f is None:
+            scaler_f = pd.read_pickle(f'./models/{clf_f_name}_flip_scaler.pickle')
+            clf_f=pd.read_pickle(f'./models/{clf_f_name}_flip_clf.pickle')
+        res=cv2.resize(result,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
+        # results=[result,np.rot90(result,1),np.rot90(result,3)]
+        res_gr=cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
+        res_rots=[np.rot90(res_gr,-1),res_gr,np.rot90(res_gr,1)]
+        if pixel_f is None:
+            pixel_f=200
+        proba=[]
+        for res_gr in res_rots:
+            # res=cv2.resize(res,(pixel_f,pixel_f),interpolation=cv2.INTER_AREA)
+            
+            try:
+                prob=clf_f.predict_proba(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
             # print(prob)
-    res_idx=np.argmax(proba)
-    result=np.rot90(result,res_idx-1)
-    
+                proba.append(prob[0][1])
+            except:
+                prob=clf_f.predict(scaler_f.transform(res_gr.reshape(1,-1)/255.0))
+                proba.append(prob[0])
+                # print(prob)
+        res_idx=np.argmax(proba)
+        result=np.rot90(result,res_idx-1)
+
     if ret_img:
         return result
     
@@ -270,21 +293,46 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     # _, binary = cv2.threshold(cropped_region_gr, new_thr, 255, cv2.THRESH_BINARY)
 
     binary=cv2.resize(binary,(pixel*9,pixel*9),interpolation=cv2.INTER_AREA)
-    predicted_numbers = []
-    for i in range(9):
-        for j in range(9):
-            digit_square = binary[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel]
-            if np.mean(digit_square)>=white_thres:
-                predicted_numbers.append(0)
-                continue
-            digit_square = digit_square.reshape(1, -1)/255.0
-            digit_square=scaler.transform(digit_square)
-            prediction = clf.predict(digit_square)
-            predicted_digit = np.argmax(prediction)
-            predicted_numbers.append(prediction[0])
-    problem=[]
-    for i in range(0, len(predicted_numbers), 9):
-        problem.append(predicted_numbers[i:i+9])
+    if flip_judge==0:
+        problems=[]
+        violations=[]
+        for k in range(3):
+            binary_rot=np.rot90(binary,k-1)
+            predicted_numbers = []
+            for i in range(9):
+                for j in range(9):
+                    digit_square = binary_rot[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel]
+                    if np.mean(digit_square)>=white_thres:
+                        predicted_numbers.append(0)
+                        continue
+                    digit_square = digit_square.reshape(1, -1)/255.0
+                    digit_square=scaler.transform(digit_square)
+                    prediction = clf.predict(digit_square)
+                    predicted_digit = np.argmax(prediction)
+                    predicted_numbers.append(prediction[0])
+            problem=[]
+            for i in range(0, len(predicted_numbers), 9):
+                problem.append(predicted_numbers[i:i+9])
+            problems.append(problem)
+            violations.append(count_violations(np.array(problem)))
+        idx=np.argmin(violations)
+        problem=problems[idx]
+    else:
+        predicted_numbers = []
+        for i in range(9):
+            for j in range(9):
+                digit_square = binary[i*pixel:(i+1)*pixel, j*pixel:(j+1)*pixel]
+                if np.mean(digit_square)>=white_thres:
+                    predicted_numbers.append(0)
+                    continue
+                digit_square = digit_square.reshape(1, -1)/255.0
+                digit_square=scaler.transform(digit_square)
+                prediction = clf.predict(digit_square)
+                predicted_digit = np.argmax(prediction)
+                predicted_numbers.append(prediction[0])
+        problem=[]
+        for i in range(0, len(predicted_numbers), 9):
+            problem.append(predicted_numbers[i:i+9])
         # print(predicted_numbers[i:i+9])
 
     # stdが低いものがよさそう
