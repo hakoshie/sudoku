@@ -77,26 +77,27 @@ def solve(image):
  
     except:
         cnt=0
-        K=min(5,len(top_5_violations))
-        for i in range(3**K):
-            candidate_idx = [(i // 3**j) % 3 for j in range(K)]
-            problem_tmp=problem.copy()
-            for j,idx in enumerate(candidate_idx):
-                i_x,j_y,_=top_5_violations[j]
-                num_ij=problem[i_x][j_y]
-                problem_tmp[i_x][j_y]=candidates[num_ij][idx]
-            try:
-                for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
-                    if cnt>0:
-                        break
-                    cnt+=1
-                    ans=np.array(solution)
+        return np.ones((9,9),dtype=np.int32)
+        # K=min(5,len(top_5_violations))
+        # for i in range(3**K):
+        #     candidate_idx = [(i // 3**j) % 3 for j in range(K)]
+        #     problem_tmp=problem.copy()
+        #     for j,idx in enumerate(candidate_idx):
+        #         i_x,j_y,_=top_5_violations[j]
+        #         num_ij=problem[i_x][j_y]
+        #         problem_tmp[i_x][j_y]=candidates[num_ij][idx]
+        #     try:
+        #         for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
+        #             if cnt>0:
+        #                 break
+        #             cnt+=1
+        #             ans=np.array(solution)
 
-                if cnt>0:
-                    break
-            except:
-                cnt=0
-                continue
+        #         if cnt>0:
+        #             break
+        #     except:
+        #         cnt=0
+        #         continue
     if cnt==0:
         return np.ones((9,9),dtype=np.int32)
     # end_time = time.time()
