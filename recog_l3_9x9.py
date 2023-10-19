@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.22,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit=4, tileGridSize=200,n_dilate=1,n_erode=1,plt_res2=0,first_claphe=False,clipLimit1=1,tileGridSize1=100,bilateral=1):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.22,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit=4, tileGridSize=200,n_dilate=1,n_erode=1,plt_res2=0,first_clahe=False,clipLimit1=1,tileGridSize1=100,bilateral=1,clahe_time=1):
     image = cv2.imread(image, cv2.IMREAD_COLOR)
     # num=12
     # image = cv2.imread(f"./data/level3/sudoku_000{num}.jpg", cv2.IMREAD_COLOR)
@@ -23,7 +23,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         gray_gb= cv2.bilateralFilter(gray, 11, 2,2)
     else:
         gray_gb=gray
-    if first_claphe:
+    if first_clahe:
         clahe = cv2.createCLAHE(clipLimit=clipLimit1, tileGridSize=(tileGridSize1,tileGridSize1))
         gray = clahe.apply(gray)
 
@@ -154,18 +154,15 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # 画像をグレースケールに変換する
     gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
     clahe = cv2.createCLAHE(clipLimit=clipLimit, tileGridSize=(tileGridSize,tileGridSize))
-    gray = clahe.apply(gray)
+    for i in range(clahe_time):
+        gray = clahe.apply(gray)
     # 大津の二値化を適用
     thresh, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)
-    # binary=cv2.medianBlur(binary, 5)
-    binary = cv2.dilate(binary, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
-    binary= cv2.erode(binary, np.ones((2, 2), dtype=edge.dtype),iterations=n_close)
-    # opening
-    binary = cv2.erode(binary, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
-    binary = cv2.dilate(binary, np.ones((2, 2), dtype=edge.dtype),iterations=n_open)
-    # binary=cv2.GaussianBlur(binary,None ,2)
-    # edges = cv2.Canny(binary,100,200)
-    
+    new_thr = min(int(thresh * 1.05), 255)
+    _, binary = cv2.threshold(gray, new_thr, 255, cv2.THRESH_BINARY)
+    # edge = cv2.Canny(binary, 100, 200)
+    # edge = cv2.dilate(edge, np.ones((5, 5), dtype=edge.dtype))
+    # edge = cv2.erode(edge, np.ones((3, 3), dtype=edge.dtype))
     # 輪郭を検出する
     contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 

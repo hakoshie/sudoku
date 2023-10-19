@@ -5,7 +5,7 @@ import pandas as pd
 import pickle
 import recog_l3
 import os 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=4, tileGridSize2=50,n_dilate=1,n_erode=1,plt_res2=0,first_claphe=False,clipLimit1=1.5,tileGridSize1=100,bilateral=1,mean_denoise=1):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=4, tileGridSize2=50,n_dilate=1,n_erode=1,plt_res2=0,first_clahe=False,clipLimit1=1.5,tileGridSize1=100,bilateral=1,mean_denoise=1):
 
     
     image = cv2.imread(image, cv2.IMREAD_COLOR)
