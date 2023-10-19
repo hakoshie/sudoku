@@ -8,28 +8,7 @@ import recognize
 import sudoku_solver
 import time
 
-def count_violations(board):
-    violations = 0
-    # 行の制約をチェック
-    for i in range(9):
-        row = board[i, :]
-        for j in range(1, 10):
-            if np.count_nonzero(row == j) > 1:
-                violations += 1
-    # 列の制約をチェック
-    for j in range(9):
-        col = board[:, j]
-        for i in range(1, 10):
-            if np.count_nonzero(col == i) > 1:
-                violations += 1
-    # ボックスの制約をチェック
-    for i in range(0, 9, 3):
-        for j in range(0, 9, 3):
-            box = board[i:i+3, j:j+3].flatten()
-            for k in range(1, 10):
-                if np.count_nonzero(box == k) > 1:
-                    violations += 1
-    return violations
+
 def count_constraint_violations(board):
     violations = []  # (i, j, 違反回数) のタプルを格納するリスト
 
@@ -56,8 +35,8 @@ def count_constraint_violations(board):
                     for y in range(3):
                         if (block_start_i + x != i or block_start_j + y != j) and board[block_start_i + x][block_start_j + y] == num:
                             violation_count += 1
-
-            violations.append((i, j, violation_count))
+            if violation_count>0:
+                violations.append((i, j, violation_count))
 
     return violations
 
@@ -96,7 +75,7 @@ def solve(image):
             if cnt>1:
                 break
     except:
-
+        cnt=0
         for i in range(3**5):
             nums = [(i // 3**j) % 3 for j in range(5)]
             problem_tmp=problem.copy()
@@ -111,6 +90,8 @@ def solve(image):
                     ans=np.array(solution)
                     if cnt>1:
                         break
+                if cnt>0:
+                    break
             except:
                 continue
     if cnt==0:
