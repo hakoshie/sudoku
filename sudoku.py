@@ -54,7 +54,7 @@ def solve(image):
     sorted_violations = sorted(violations, key=lambda x: x[2], reverse=True)
     
     # 上位5つのタプルを取得
-    top_5_violations = sorted_violations[:5]
+    top_5_violations = sorted_violations[:6]
 
     candidates=[[0, 1, 9],
     [1, 3, 2],
@@ -77,19 +77,21 @@ def solve(image):
  
     except:
         cnt=0
-        for i in range(3**min(5,len(top_5_violations))):
-            candidate_idx = [(i // 3**j) % 3 for j in range(5)]
+        K=min(5,len(top_5_violations))
+        for i in range(3**K):
+            candidate_idx = [(i // 3**j) % 3 for j in range(K)]
             problem_tmp=problem.copy()
-            for j,num in enumerate(candidate_idx):
+            for j,idx in enumerate(candidate_idx):
                 i_x,j_y,_=top_5_violations[j]
                 num_ij=problem[i_x][j_y]
-                problem_tmp[i_x][j_y]=candidates[num_ij][num]
+                problem_tmp[i_x][j_y]=candidates[num_ij][idx]
             try:
                 for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
+                    if cnt>0:
+                        break
                     cnt+=1
                     ans=np.array(solution)
-                    if cnt>1:
-                        break
+
                 if cnt>0:
                     break
             except:
