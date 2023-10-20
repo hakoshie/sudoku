@@ -32,13 +32,13 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     if pixel is None:
         pixel=60
     if scaler is None or clf is None:
-        model_name="MLPC_numbers_mix_v4"
+        # model_name="MLPC_numbers_mix_v4"
         # model_name="MLPC_numbers_mix_v3"
         # model_name="MLPC_numbers_mix_v2"
         # model_name="MLPC_numbers_mix_line3_v2_m"
         # model_name="Rand_numbers_mix_l2"
         # model_name="MLPC_numbers_mix"
-        # model_name="ensemble_MLPC"
+        model_name="ensemble_MLPC"
         scaler = pd.read_pickle(f'./models/{model_name}_scaler.pickle')        
         clf = pd.read_pickle(f'./models/{model_name}_clf.pickle')
         
@@ -60,9 +60,6 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     ############################
     thr, binary = cv2.threshold(gray_gb, 0, 255, cv2.THRESH_OTSU)
 
-    ########################################
-    ## level 2ではこれをすると死ぬ
-    #######################################
     new_thr = min(int(thr * otsu_times), 255)
     _, binary = cv2.threshold(gray_gb, new_thr, 255, cv2.THRESH_BINARY)
 
@@ -94,7 +91,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
         internal_area_ratio = area / (w * h)
         if len(approx) == 4 and internal_area_ratio>0.5:
             # print(len(approx), x,y,w,h, arclen,internal_area_ratio)
-            cv2.drawContours(result, [approx], -1, (255, 0, 0), 3, cv2.LINE_AA)
+            # cv2.drawContours(result, [approx], -1, (255, 0, 0), 3, cv2.LINE_AA)
             # # plt.imshow(result)
             # # plt.show()
             if  max_area < area:
@@ -110,7 +107,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     arclen = cv2.arcLength(longest_cnt, True)
     approx = cv2.approxPolyDP(longest_cnt, arclen * arc_epsilon, True)
 
-    cv2.drawContours(result, [approx], -1, (255, 0, 0), 3, cv2.LINE_AA)
+    cv2.drawContours(result, [approx], -1, (255, 255,255), 3, cv2.LINE_AA)
     # plt.imshow(result)
     # plt.title("Red region has {:d} corners".format(len(approx)))
     # plt.show()
@@ -145,29 +142,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     # 射影変換を計算して、パースをキャンセルする
     warp = cv2.getPerspectiveTransform(src_pts, dst_pts)
     result = cv2.warpPerspective(cropped, warp, (new_w, new_h))
-    # print(result.shape)
-    # result = cv2.warpPerspective(binary, warp, (new_w, new_h))
 
-
-    # plt.imshow(result, cmap="gray")
-    # plt.show()
-    # print(result.shape)
-
-    ###########################
-    # 白い領域の平均値を計算
-    # ###########################
-    # gray_result = cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
-    # thresh, binary_image = cv2.threshold(gray_result, 0, 255, cv2.THRESH_OTSU)
-    
-    # white_region = result.copy()
-    # idx=binary_image!=0
-    # # mean_white = np.median(white_region[idx],axis=0)
-    # mean_white = np.mean(white_region[idx],axis=mean_white_axis)
-    
-    # print(mean_white)
-    # plt.imshow(binary_image, cmap="gray")
-    # plt.imshow(binary_image!=0, cmap="gray")
-    # white
 
     height, width, channels = result.shape[:3]
     trim_width = int(width * trim_percentage)
@@ -175,6 +150,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     result = result[trim_height:height - trim_height, trim_width:width - trim_width]
     # plt.imshow(result)
     if erase_line:
+        # 線を消す
         gray=cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
         # Threshold the image to create a binary image
         # Smooth the image
@@ -229,9 +205,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
 
 
     if flip_judge:
-    #########################################
-    ## classify flipped
-    #########################################
+        # 回転の判定
         if clf_f is None:
             scaler_f = pd.read_pickle(f'./models/{clf_f_name}_flip_scaler.pickle')
             clf_f=pd.read_pickle(f'./models/{clf_f_name}_flip_clf.pickle')
@@ -336,9 +310,4 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
             problem.append(predicted_numbers[i:i+9])
         # print(predicted_numbers[i:i+9])
 
-    # stdが低いものがよさそう
-    # for problem in problems:
-    #     nonzeros=np.count_nonzero(problem)
-    #     print(nonzeros,np.std(problem),np.mean(problem))
-    # problem=problems[0]
     return problem

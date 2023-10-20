@@ -5,7 +5,7 @@ import pandas as pd
 import pickle
 import recog_l3
 import os 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=4, tileGridSize2=50,n_dilate=1,n_erode=1,plt_res2=0,first_clahe=False,clipLimit1=1.5,tileGridSize1=100,bilateral=1,mean_denoise=1):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=4, tileGridSize2=50,n_dilate=1,n_erode=1,plt_res2=0,first_clahe=False,clipLimit1=1.5,tileGridSize1=100,bilateral=1,mean_denoise=1,clahe_time1=1,clahe_time2=1):
 
     
     image = cv2.imread(image, cv2.IMREAD_COLOR)
@@ -19,8 +19,9 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
 
     gray= cv2.bilateralFilter(gray, 11, 2,2)
     # gray_gb = cv2.GaussianBlur(gray, None, 2.0)
-    clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(100,100))
-    gray = clahe.apply(gray)
+    clahe = cv2.createCLAHE(clipLimit=clipLimit1, tileGridSize=(tileGridSize1,tileGridSize1))
+    for i in range(clahe_time1):
+        gray = clahe.apply(gray)
     # gray = cv2.equalizeHist(gray)
     # ぼかし処理
 
@@ -30,7 +31,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # 大津の二値化
 
     thr, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)
-    new_thr = min(int(thr * 1.05), 255)
+    new_thr = min(int(thr * otsu_times), 255)
     _, binary = cv2.threshold(gray, new_thr, 255, cv2.THRESH_BINARY)
     # # plt.imshow(binary, cmap="gray")
     # # plt.title("Otsu's binarization (threshold={:d})".format(int(thr)))
@@ -44,7 +45,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # plt.show()
     contours, _ = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     result = image.copy()
-    cv2.drawContours(result, contours, -1, (255, 0, 0), 3, cv2.LINE_AA)
+    # cv2.drawContours(result, contours, -1, (0,0,0), 3, cv2.LINE_AA)
     # plt.imshow(result)
     # plt.show()
     # x, y, w, h = cv2.boundingRect(contours[1])
@@ -54,7 +55,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     longest_cnt = None
     max_length = 0.0
     max_area = 0.0
-    result = image.copy()
+    # result = image.copy()
     epsilon=3e-2
     for cnt in contours:
         # 輪郭線の長さを計算
@@ -65,21 +66,21 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         internal_area_ratio = area / (w * h)
         if len(approx)<10 and len(approx) >= 4 and internal_area_ratio>0.5:
             # # print(len(approx), x,y,w,h, arclen,internal_area_ratio)
-            cv2.drawContours(result, [approx], -1, (255, 0, 0), 3, cv2.LINE_AA)
+            cv2.drawContours(result, [approx], -1, (0,0,0), 3, cv2.LINE_AA)
             # # plt.imshow(result)
             # # plt.show()
             if  max_area < area:
                 max_area = area
                 max_length = arclen
                 longest_cnt = cnt
-    result = image.copy()
+    # result = image.copy()
 
     # # plt.imshow(result)
     # # plt.show()
     # # print(len(longest_cnt))
     arclen = cv2.arcLength(longest_cnt, True)
     approx = cv2.approxPolyDP(longest_cnt, arclen * epsilon, True) 
-    cv2.drawContours(result, [approx], -1, (255, 255, 0), 3, cv2.LINE_AA)
+    cv2.drawContours(result, [approx], -1, (0,0,0), 3, cv2.LINE_AA)
     # plt.imshow(result)
     # plt.title("Red region has {:d} corners".format(len(approx)))
     # plt.show()
@@ -101,13 +102,14 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
 
     # 新しい近似を描画する
     new_approx = np.array(new_approx)
-    cv2.drawContours(result, [np.array(new_approx)], -1, (0, 0, 255), 3, cv2.LINE_AA)
+    # cv2.drawContours(result, [np.array(new_approx)], -1, (0, 0, 255), 3, cv2.LINE_AA)
     # plt.imshow(result)
     # plt.title("Red region has {:d} corners".format(len(new_approx)))
     # plt.show()
     # さっきのところを切り取って射影変換    
     x, y, w, h = cv2.boundingRect(new_approx)
-    cropped = image[y:y+h, x:x+w]
+    # cropped = image[y:y+h, x:x+w]
+    cropped = result[y:y+h, x:x+w]
     # plt.imshow(cropped)
     # plt.show()
     # # print(approx)
@@ -139,102 +141,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     except:
         return -1
 
-    #　反転させたリストを作成
-    # results=[result, cv2.rotate(result,cv2.ROTATE_90_CLOCKWISE), cv2.rotate(result,cv2.ROTATE_180), cv2.rotate(result,cv2.ROTATE_90_COUNTERCLOCKWISE)]
-    # for i, result in enumerate(results):
 
-    #     # plt.subplot(2, 2, i+1)
-    #     # plt.imshow(result)
-    #     # plt.title("result {:d}".format(i))
-    # result=cv2.rotate(result,cv2.ROTATE_90_CLOCKWISE)
-    # plt.imshow(result, cmap="gray")
-    # plt.show()
-    # import cv2
-    # import numpy as np
-    # import matplotlib.pyplot as plt
-
-    # # Load an image
-    # image = result
-
-    # # Convert the image to grayscale
-    # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # # Apply morphology transformation
-    # kernel = np.ones((3,3), np.uint8)
-    # dilated = cv2.morphologyEx(gray, cv2.MORPH_DILATE, kernel)
-
-    # # Apply denoising
-    # denoised = cv2.fastNlMeansDenoising(dilated, None, 10, 7, 21)
-
-    # # Display the images
-    # fig, axs = # plt.subplots(1, 3, figsize=(10, 10))
-    # axs[0].imshow(gray, cmap='gray')
-    # axs[0].set_title('Original')
-    # axs[1].imshow(dilated, cmap='gray')
-    # axs[1].set_title('Dilated')
-    # axs[2].imshow(denoised, cmap='gray')
-    # axs[2].set_title('Denoised')
-    # # plt.show()
-    # import cv2
-    # import numpy as np
-    # import matplotlib.pyplot as plt
-
-    # # Load an image
-    # image = result
-
-    # # Convert the image to grayscale
-    # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # # Apply histogram equalization
-    # gray_eq = cv2.equalizeHist(gray)
-
-    # # Apply CLAHE
-    # clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(10,10))
-    # gray_clahe = clahe.apply(gray_eq)
-
-    # # Apply gamma correction
-    # gamma = .5
-    # inv_gamma = 1.0 / gamma
-    # table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
-    # gray_gamma = cv2.LUT(gray, table)
-
-    # # Display the images
-    # fig, axs = # plt.subplots(2, 2, figsize=(10, 10))
-    # axs[0, 0].imshow(gray, cmap='gray')
-    # axs[0, 0].set_title('Original')
-    # axs[0, 1].imshow(gray_eq, cmap='gray')
-    # axs[0, 1].set_title('Histogram Equalization')
-    # axs[1, 0].imshow(gray_clahe, cmap='gray')
-    # axs[1, 0].set_title('CLAHE')
-    # axs[1, 1].imshow(gray_gamma, cmap='gray')
-    # axs[1, 1].set_title('Gamma Correction')
-    # # plt.show()
-    # erase_line=True
-    # mean_white_axis=0
-    # gray_result = cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
-    # thresh, binary_image = cv2.threshold(gray_result, 0, 255, cv2.THRESH_OTSU)
-    # # 白い領域の平均値を計算
-    # white_region = result.copy()
-    # idx=binary_image==0
-    # # mean_white = np.median(white_region[idx],axis=0)
-    # # 赤にするとなぜかうまくいく, 0の閾値の関係で、0ありで訓練したモデルを使っているとき
-    # # mean_white = np.mean(white_region[idx],axis=None)
-    # mean_white = np.mean(white_region[idx],axis=mean_white_axis)
-    # if erase_line:
-    #     gray=cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
-    #     # Threshold the image to create a binary image
-    #     # Smooth the image
-    #     # gray = cv2.GaussianBlur(gray, (3, 3), 0)
-    #     # gray=cv2.bilateralFilter(gray, 11, 2,2)
-
-    #     # Detect edges using Canny edge detection
-    #     edges = cv2.Canny(gray, 150, 300, L2gradient=True)
-    #     lines = cv2.HoughLinesP(edges, rho=1, theta=np.radians(1),threshold=100, minLineLength=94,maxLineGap=50)
-    #     for x1, y1, x2, y2 in lines.squeeze(axis=1):
-    #         cv2.line(result, (x1, y1), (x2, y2), (0,0,0), 2)
-
-    # # plt.imshow(result, cmap="gray")
-    # # plt.show()
     def is_square(sides):
         
         # 輪郭の面積と外接矩形の面積を比較
@@ -248,7 +155,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         return True
 
     n_close,n_open=2,2
-    n_dilate,n_erode=4,3
+    # n_dilate,n_erode=4,3
     # 正方形を検出する
     # 画像をグレースケールに変換する
 
@@ -260,8 +167,9 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # gray = cv2.LUT(gray, table)
 
     # Apply CLAHE
-    clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(50,50))
-    gray = clahe.apply(gray)
+    clahe = cv2.createCLAHE(clipLimit=clipLimit2, tileGridSize=(tileGridSize2,tileGridSize2))
+    for i in range(clahe_time2):
+        gray = clahe.apply(gray)
 
     # Apply histogram equalization
     # gray = cv2.equalizeHist(gray)
@@ -274,7 +182,9 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
 
     # 大津の二値化を適用
     thresh, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)
-    edge = cv2.Canny(binary, 150, 200)
+    # new_thr = min(int(thresh * otsu_times), 255)
+    # _, binary = cv2.threshold(gray, new_thr, 255, cv2.THRESH_BINARY)
+    edge = cv2.Canny(binary, 100, 200)
     edge = cv2.dilate(edge, np.ones((11, 11), dtype=edge.dtype))
     edge = cv2.erode(edge, np.ones((9, 9), dtype=edge.dtype))
     # 輪郭を検出する
@@ -314,11 +224,11 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
                 if max(sides) >= result.shape[0] / 2 or min(sides) <= result.shape[0] / 9:
                 # if min(sides) <= result.shape[0] / 9:
                     continue
-                cv2.drawContours(res2, [approx], -1, (255,0,255), 2)
+                # cv2.drawContours(res2, [approx], -1, (255,0,255), 2)
                 # put number
                 count+=1
                 squares.append(approx)
-                cv2.putText(res2, str(count), (points[0][0],points[0][1]), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,0), 3, cv2.LINE_AA)
+                # cv2.putText(res2, str(count), (points[0][0],points[0][1]), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,0), 3, cv2.LINE_AA)
     if ret_num:
         return count
     # print(count)
@@ -394,9 +304,9 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
                 continue
             cnt=cen2contours[(cx,cy)]
             x, y, w, h = cv2.boundingRect(cnt)
-            cv2.drawContours(res3, [cnt], -1, (255,0,255), 2)
+            # cv2.drawContours(res3, [cnt], -1, (255,0,255), 2)
             count += 1
-            cv2.putText(res3, str(count), (x, y+h), cv2.FONT_HERSHEY_PLAIN, 5, (255, 0, 0), 2, cv2.LINE_AA)
+            # cv2.putText(res3, str(count), (x, y+h), cv2.FONT_HERSHEY_PLAIN, 5, (255, 0, 0), 2, cv2.LINE_AA)
     # plt.imshow(res3)
     problem=np.zeros((9,9))
     pixel=20
