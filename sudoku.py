@@ -106,16 +106,16 @@ def solve(image):
     # 上位5つのタプルを取得
     potential_miss = sorted_violations[:10]
 
-    candidates=[[0, 5, 1],
-                [1, 4, 3],
-                [2, 3, 8],
-                [3, 1, 5],
-                [4, 9, 8],
-                [5, 9, 8],
-                [6, 8, 5],
-                [7, 2, 3],
-                [8, 6, 5],
-                [9, 5, 8]]
+    candidates=[[0, 5, 0],
+                [1, 4, 0],
+                [2, 3, 0],
+                [3, 1, 0],
+                [4, 9, 0],
+                [5, 9, 0],
+                [6, 8, 0],
+                [7, 2, 0],
+                [8, 6, 0],
+                [9, 5, 0]]
     ans=None
     try:
         for solution in sudoku_solver.solve_sudoku((3,3),problem):
@@ -125,7 +125,7 @@ def solve(image):
     except:
         # return np.ones((9,9),dtype=np.int32)
         K=min(9,len(potential_miss))
-        max_trial=100
+        max_trial=200
         n_trial=0
         for i in range(3**K):
             if n_trial>=max_trial:
