@@ -46,21 +46,24 @@ def count_violations(board):
     for i in range(9):
         row = board[i, :]
         for j in range(1, 10):
-            if np.count_nonzero(row == j) > 1:
-                violations += 1
+            j_cnt=np.count_nonzero(row == j)
+            if  j_cnt> 1:
+                violations += j_cnt
     # 列の制約をチェック
     for j in range(9):
         col = board[:, j]
         for i in range(1, 10):
-            if np.count_nonzero(col == i) > 1:
-                violations += 1
+            i_cnt=np.count_nonzero(col == i)
+            if i_cnt> 1:
+                violations += i_cnt
     # ボックスの制約をチェック
     for i in range(0, 9, 3):
         for j in range(0, 9, 3):
             box = board[i:i+3, j:j+3].flatten()
             for k in range(1, 10):
-                if np.count_nonzero(box == k) > 1:
-                    violations += 1
+                k_cnt=np.count_nonzero(box == k)
+                if k_cnt > 1:
+                    violations += k_cnt
     return violations
 def violation_check(board):
     # O(10^3)
@@ -97,7 +100,7 @@ def solve(image):
     # print(problem1.shape)
     problem2=np.array(recognize.recognize(image))
     # 違反回数で降順ソート
-    if count_violations(problem1)>count_violations(problem2):
+    if count_violations(problem1)>=count_violations(problem2):
         problem=problem2
     else:
         problem=problem1
