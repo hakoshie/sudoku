@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
 import os 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=.46, tileGridSize2=7,n_dilate=4,n_erode=3,plt_res2=0,first_clahe=False,clipLimit1=.5,tileGridSize1=95,bilateral=1,mean_denoise=1,clahe_time1=1,clahe_time2=2):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=.46, tileGridSize2=7,n_dilate=4,n_erode=3,plt_res2=0,first_clahe=False,clipLimit1=.5,tileGridSize1=95,bilateral=1,mean_denoise=1,clahe_time1=1,clahe_time2=2,pass_image=0):
 
-
-    image = cv2.imread(image, cv2.IMREAD_COLOR)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    if not pass_image:
+        image = cv2.imread(image, cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     trim_percentage=0.002
     height, width, channels = image.shape[:3]
     trim_width = int(width * trim_percentage)
