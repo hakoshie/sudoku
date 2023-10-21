@@ -4,16 +4,69 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
 import os 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=.46, tileGridSize2=7,n_dilate=4,n_erode=3,plt_res2=0,first_clahe=False,clipLimit1=.5,tileGridSize1=95,bilateral=1,mean_denoise=1,clahe_time1=1,clahe_time2=2,pass_image=0):
+
+def is_square(cnt,sides):
+    
+    # 輪郭の面積と外接矩形の面積を比較
+    area = cv2.contourArea(cnt)
+    rect_area = sides[0]*sides[1]
+    side_ratio=(sides[1]+sides[3])/(sides[0]+sides[2])
+    # if side_ratio>2 or side_ratio<0.5:
+    #     return False
+    if area / rect_area < 0.3 or area / rect_area > 3:
+        return False
+    return True
+def count_violations(board):
+    violations = 0
+    if np.count_nonzero(board) < 17:
+        return 1000
+    # 行の制約をチェック
+    for i in range(9):
+        row = board[i, :]
+        for j in range(1, 10):
+            j_cnt=np.count_nonzero(row == j)
+            if  j_cnt> 1:
+                violations += j_cnt
+    # 列の制約をチェック
+    for j in range(9):
+        col = board[:, j]
+        for i in range(1, 10):
+            i_cnt=np.count_nonzero(col == i)
+            if i_cnt> 1:
+                violations += i_cnt
+    # ボックスの制約をチェック
+    for i in range(0, 9, 3):
+        for j in range(0, 9, 3):
+            box = board[i:i+3, j:j+3].flatten()
+            for k in range(1, 10):
+                k_cnt=np.count_nonzero(box == k)
+                if k_cnt > 1:
+                    violations += k_cnt
+    return violations
+
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=245,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=.46, tileGridSize2=7,n_dilate=4,n_erode=3,plt_res2=0,first_clahe=False,clipLimit1=.5,tileGridSize1=95,bilateral=1,mean_denoise=1,clahe_time1=1,clahe_time2=2,pass_image=0,plt_res3=0):
 
     if not pass_image:
         image = cv2.imread(image, cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    if scaler is None or clf is None:
+        # model_name="MLPC_numbers_mix_v4"
+        # model_name="MLPC_numbers_mix_v3"
+        # model_name="MLPC_numbers_mix_v2"
+        # model_name="MLPC_numbers_mix_line3_v2_m"
+        # model_name="Rand_numbers_mix_l2"
+        # model_name="MLPC_numbers_mix"
+        model_name="ensemble_MLPC"
+        scaler = pd.read_pickle(f'./models/{model_name}_scaler.pickle')        
+        clf = pd.read_pickle(f'./models/{model_name}_clf.pickle')
     trim_percentage=0.002
     height, width, channels = image.shape[:3]
     trim_width = int(width * trim_percentage)
     trim_height = int(height * trim_percentage)
     image = image[trim_height:height - trim_height, trim_width:width - trim_width]
+    color = [255, 255, 255]
+# パディングを追加する
+
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
     gray= cv2.bilateralFilter(gray, 11, 2,2)
@@ -68,7 +121,15 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             # cv2.drawContours(result, [approx], -1, (0,0,0), 3, cv2.LINE_AA)
             # # plt.imshow(result)
             # # plt.show()
-            if  max_area < area:
+            sides = []
+            points = []
+            for i in range(4):
+                x1, y1 = approx[i][0]
+                x2, y2 = approx[(i + 1) % 4][0]
+                side = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+                points.append([x1, y1])
+                sides.append(side)
+            if  max_area < area and is_square(cnt,sides):
                 max_area = area
                 max_length = arclen
                 longest_cnt = cnt
@@ -109,7 +170,10 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # さっきのところを切り取って射影変換    
     x, y, w, h = cv2.boundingRect(new_approx)
     # cropped = image[y:y+h, x:x+w]
-    cropped = result[y:y+h, x:x+w]
+    h,w= result.shape[:2]
+    padding=50
+    result= cv2.copyMakeBorder(result, padding,padding,padding,padding, cv2.BORDER_CONSTANT, value=color)
+    cropped = result[y+padding:y+padding+h, x+padding:x+padding+w]
     # plt.imshow(cropped)
     # plt.show()
     # # print(approx)
@@ -128,8 +192,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     aspect = abs(w) / abs(h)
 
     # 新しい画像サイズを設定
-    new_w = int(1000*aspect)
-    # new_w = 1000
+    # new_w = int(1000*aspect)
+    new_w = 1000
     new_h = 1000
     # dst_pts = np.array([(0, 0), (0, new_h), (new_w, new_h), (new_w, 0)], dtype="float32")
     dst_pts = np.array([(0, 0), (new_w, 0), (new_w, new_h), (0, new_h)], dtype="float32")
@@ -138,33 +202,21 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     try:
         warp = cv2.getPerspectiveTransform(src_pts, dst_pts)
         result = cv2.warpPerspective(cropped, warp, (new_w, new_h))
+        # result=cv2.resize(result, (1000,1000), interpolation=cv2.INTER_AREA)
     except:
         return -1
+    
 
-
-    def is_square(sides):
-        
-        # 輪郭の面積と外接矩形の面積を比較
-        area = cv2.contourArea(cnt)
-        rect_area = sides[0]*sides[1]
-        side_ratio=(sides[1]+sides[3])/(sides[0]+sides[2])
-        # if side_ratio>2 or side_ratio<0.5:
-        #     return False
-        if area / rect_area < 0.3 or area / rect_area > 3:
-            return False
-        return True
 
     n_close,n_open=2,2
     # n_dilate,n_erode=4,3
+    #############################
     # 正方形を検出する
+    ########################
     # 画像をグレースケールに変換する
 
     gray = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
     gray= cv2.bilateralFilter(gray, 11, 2,2)
-    # gamma = 1.4
-    # inv_gamma = 1.0 / gamma
-    # table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
-    # gray = cv2.LUT(gray, table)
 
     # Apply CLAHE
     clahe = cv2.createCLAHE(clipLimit=clipLimit2, tileGridSize=(tileGridSize2,tileGridSize2))
@@ -220,7 +272,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             
             # 各辺の長さがほぼ等しい場合、正方形とみなす
             # if np.std(sides) < np.mean(sides) :
-            if is_square(sides):
+            if is_square(cnt,sides):
                 if max(sides) >= result.shape[0] / 2 or min(sides) <= result.shape[0] / 9:
                 # if min(sides) <= result.shape[0] / 9:
                     continue
@@ -232,15 +284,16 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     if ret_num:
         return count
     if count !=9:
+        print("count is not 9")
         return None
     # print(count)
     if plt_res2:
         plt.imshow(res2)
         plt.show()
+    
     # contoursのソート
     # 左上の輪郭を取得する
     top_left = None
-    init_squares=squares
     # 重心
     centers = []
     # 重心と輪郭の対応
@@ -269,7 +322,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         for cnt in not_visited:
             x,y=cnt
             dist= np.sqrt((x - current_pos[0])**2 + (y - current_pos[1])**2)
-            if dist < min_dist and y > current_pos[1]+5:
+            if dist < min_dist and y > current_pos[1]+5 and x<current_pos[0]+50:
                 min_dist = dist
                 next_square = cnt
         if next_square is not None:
@@ -292,7 +345,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
                 x, y=cnt
                 # dist = abs(y - current_pos[1])
                 dist= np.sqrt((x - current_pos[0])**2 + (y - current_pos[1])**2)
-                if dist < min_dist and x > current_pos[0]+5:
+                if dist < min_dist and x > current_pos[0]+5 and y<current_pos[1]+50:
                     min_dist = dist
                     next_square = cnt
             if next_square is not None:
@@ -311,15 +364,13 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             cv2.drawContours(res3, [cnt], -1, (255,0,255), 2)
             count += 1
             cv2.putText(res3, str(count), (x, y+h), cv2.FONT_HERSHEY_PLAIN, 5, (255, 0, 0), 2, cv2.LINE_AA)
-    # plt.imshow(res3)
-    # plt.show()
-    problem=np.zeros((9,9))
+    if plt_res3:
+        plt.imshow(res3)
+        plt.show()
+    problems=[np.ones((9,9)) for _ in range(3)]
     pixel=20
-    white_thres=250
-    # scaler = pd.read_pickle('./models/Rand_numbers_mix_l2_scaler.pickle')
-    scaler = pd.read_pickle('./models/MLPC_numbers_mix_scaler.pickle')
-    # clf = pd.read_pickle('./models/Rand_numbers_mix_l2_clf.pickle')
-    clf=pd.read_pickle('./models/MLPC_numbers_mix_clf.pickle')
+    # white_thres=250
+
     for i in range(3):
         for j in range(3):
             cnt=cen2contours[squares[i][j]]
@@ -343,8 +394,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             aspect = abs(w) / abs(h)
 
             # 新しい画像サイズを設定
-            new_w = int(1000*aspect)
-            # new_w = 1000
+            # new_w = int(100*aspect)
+            new_w = 1000
             new_h = 1000
             # dst_pts = np.array([(0, 0), (0, new_h), (new_w, new_h), (new_w, 0)], dtype="float32")
             dst_pts = np.array([(0, 0), (new_w, 0), (new_w, new_h), (0, new_h)], dtype="float32")
@@ -355,21 +406,37 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             res4=cv2.cvtColor(res4, cv2.COLOR_RGB2GRAY)
             thr, res4 = cv2.threshold(res4, 0, 255, cv2.THRESH_OTSU)
             res4=cv2.resize(res4, (pixel*3,pixel*3), interpolation=cv2.INTER_AREA)
+          
             for k in range(3):
                 for l in range(3):
                     digit_square = res4[k*pixel:(k+1)*pixel,l*pixel:(l+1)*pixel]
                     problem_i=i*3+k
                     problem_j=j*3+l
-                    if np.mean(digit_square)>=white_thres:
-                        problem[problem_i][problem_j]=0
-                        continue
-                    digit_square = digit_square.reshape(1, -1)/255.0
-                    digit_square=scaler.transform(digit_square)
-                    prediction = clf.predict(digit_square)
-                    # predicted_digit = np.argmax(prediction)
-                    problem[problem_i][problem_j]=prediction[0]
+                    for m in range(3):
+                        digit_square_rot=np.rot90(digit_square,m-1)
+                        if m==2:
+                            t_i=9-problem_j-1
+                            t_j=problem_i
+                        elif m==0:
+                            t_i=problem_j
+                            t_j=9-problem_i-1
+                        else:
+                            t_i=problem_i
+                            t_j=problem_j
+                        if np.mean(digit_square_rot)>=white_thres:
+                            problems[m][t_i][t_j]=0
+                            continue
+                        digit_square_rot = digit_square_rot.reshape(1, -1)/255.0
+                        digit_square_rot=scaler.transform(digit_square_rot)
+                        prediction = clf.predict(digit_square_rot)
+                        # predicted_digit = np.argmax(prediction)
+                        problems[m][t_i][t_j]=prediction[0]
             # if j%9==3:
             #     # plt.imshow(res4)
             #     # plt.show()
-    # print(problem)
-    return problem
+    violations=[]
+    for i in range(3):
+        violations.append(count_violations(problems[i]))
+    problem=problems[np.argmin(violations)]
+    # print(problem,violations[np.argmin(violations)])
+    return np.array(problem,dtype=np.int32)

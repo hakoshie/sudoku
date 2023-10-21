@@ -10,21 +10,24 @@ def count_violations(board):
     for i in range(9):
         row = board[i, :]
         for j in range(1, 10):
-            if np.count_nonzero(row == j) > 1:
-                violations += 1
+            j_cnt=np.count_nonzero(row == j)
+            if  j_cnt> 1:
+                violations += j_cnt
     # 列の制約をチェック
     for j in range(9):
         col = board[:, j]
         for i in range(1, 10):
-            if np.count_nonzero(col == i) > 1:
-                violations += 1
+            i_cnt=np.count_nonzero(col == i)
+            if i_cnt> 1:
+                violations += i_cnt
     # ボックスの制約をチェック
     for i in range(0, 9, 3):
         for j in range(0, 9, 3):
             box = board[i:i+3, j:j+3].flatten()
             for k in range(1, 10):
-                if np.count_nonzero(box == k) > 1:
-                    violations += 1
+                k_cnt=np.count_nonzero(box == k)
+                if k_cnt > 1:
+                    violations += k_cnt
     return violations
 
 def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close=1,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,white_thres=255,otsu_times=1.2,clf_f_name="SVClinear",pixel_f=30,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,flip_judge=0):
