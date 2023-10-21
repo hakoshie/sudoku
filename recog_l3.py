@@ -3,11 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
-import recog_l3
 import os 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=4, tileGridSize2=50,n_dilate=1,n_erode=1,plt_res2=0,first_clahe=False,clipLimit1=1.5,tileGridSize1=100,bilateral=1,mean_denoise=1,clahe_time1=1,clahe_time2=1):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=250,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=.46, tileGridSize2=7,n_dilate=4,n_erode=3,plt_res2=0,first_clahe=False,clipLimit1=.5,tileGridSize1=95,bilateral=1,mean_denoise=1,clahe_time1=1,clahe_time2=2):
 
-    
+
     image = cv2.imread(image, cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     trim_percentage=0.002
@@ -66,7 +65,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         internal_area_ratio = area / (w * h)
         if len(approx)<10 and len(approx) >= 4 and internal_area_ratio>0.5:
             # # print(len(approx), x,y,w,h, arclen,internal_area_ratio)
-            cv2.drawContours(result, [approx], -1, (0,0,0), 3, cv2.LINE_AA)
+            # cv2.drawContours(result, [approx], -1, (0,0,0), 3, cv2.LINE_AA)
             # # plt.imshow(result)
             # # plt.show()
             if  max_area < area:
@@ -80,7 +79,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # # print(len(longest_cnt))
     arclen = cv2.arcLength(longest_cnt, True)
     approx = cv2.approxPolyDP(longest_cnt, arclen * epsilon, True) 
-    cv2.drawContours(result, [approx], -1, (0,0,0), 3, cv2.LINE_AA)
+    # cv2.drawContours(result, [approx], -1, (0,0,0), 3, cv2.LINE_AA)
+    cv2.drawContours(result, [longest_cnt], -1, (0,0,0), 3, cv2.LINE_AA)
     # plt.imshow(result)
     # plt.title("Red region has {:d} corners".format(len(approx)))
     # plt.show()
@@ -224,15 +224,19 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
                 if max(sides) >= result.shape[0] / 2 or min(sides) <= result.shape[0] / 9:
                 # if min(sides) <= result.shape[0] / 9:
                     continue
-                # cv2.drawContours(res2, [approx], -1, (255,0,255), 2)
+                cv2.drawContours(res2, [approx], -1, (255,0,255), 2)
                 # put number
                 count+=1
                 squares.append(approx)
-                # cv2.putText(res2, str(count), (points[0][0],points[0][1]), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,0), 3, cv2.LINE_AA)
+                cv2.putText(res2, str(count), (points[0][0],points[0][1]), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,0), 3, cv2.LINE_AA)
     if ret_num:
         return count
+    if count !=9:
+        return None
     # print(count)
-    # plt.imshow(res2)
+    if plt_res2:
+        plt.imshow(res2)
+        plt.show()
     # contoursのソート
     # 左上の輪郭を取得する
     top_left = None
@@ -257,15 +261,15 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         return -1
     not_visited.remove(top_left)
     squares=[[top_left]]
-    # 左上の輪郭の中でy軸方向に近い順に8つの輪郭を選択する
+    # 左上の輪郭の中でy軸方向に近い順に2つの輪郭を選択する
     current_pos = top_left
-    for i in range(3):
+    for i in range(2):
         min_dist = float('inf')
         next_square = None
         for cnt in not_visited:
             x,y=cnt
             dist= np.sqrt((x - current_pos[0])**2 + (y - current_pos[1])**2)
-            if dist < min_dist and y > current_pos[1]:
+            if dist < min_dist and y > current_pos[1]+5:
                 min_dist = dist
                 next_square = cnt
         if next_square is not None:
@@ -288,7 +292,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
                 x, y=cnt
                 # dist = abs(y - current_pos[1])
                 dist= np.sqrt((x - current_pos[0])**2 + (y - current_pos[1])**2)
-                if dist < min_dist and x > current_pos[0]:
+                if dist < min_dist and x > current_pos[0]+5:
                     min_dist = dist
                     next_square = cnt
             if next_square is not None:
@@ -304,10 +308,11 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
                 continue
             cnt=cen2contours[(cx,cy)]
             x, y, w, h = cv2.boundingRect(cnt)
-            # cv2.drawContours(res3, [cnt], -1, (255,0,255), 2)
+            cv2.drawContours(res3, [cnt], -1, (255,0,255), 2)
             count += 1
-            # cv2.putText(res3, str(count), (x, y+h), cv2.FONT_HERSHEY_PLAIN, 5, (255, 0, 0), 2, cv2.LINE_AA)
+            cv2.putText(res3, str(count), (x, y+h), cv2.FONT_HERSHEY_PLAIN, 5, (255, 0, 0), 2, cv2.LINE_AA)
     # plt.imshow(res3)
+    # plt.show()
     problem=np.zeros((9,9))
     pixel=20
     white_thres=250
@@ -366,4 +371,5 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             # if j%9==3:
             #     # plt.imshow(res4)
             #     # plt.show()
-    problem
+    # print(problem)
+    return problem

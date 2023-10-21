@@ -46,13 +46,13 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # plt.show()
     contours, _ = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     result = image.copy()
-    cv2.drawContours(result, contours, -1, (255, 0, 0), 3, cv2.LINE_AA)
+    # cv2.drawContours(result, contours, -1, (0, 0, 0), 3, cv2.LINE_AA)
     # plt.imshow(result)
     # plt.show()
     longest_cnt = None
     max_length = 0.0
     max_area = 0.0
-    result = image.copy()
+    # result = image.copy()
     epsilon=9e-2
     for cnt in contours:
         # 輪郭線の長さを計算
@@ -63,14 +63,14 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         internal_area_ratio = area / (w * h)
         if len(approx)<10 and len(approx) >= 4 and internal_area_ratio>0.5:
             # print(len(approx), x,y,w,h, arclen,internal_area_ratio)
-            cv2.drawContours(result, [approx], -1, (255, 0, 0), 3, cv2.LINE_AA)
+            # cv2.drawContours(result, [approx], -1, (0, 0, 0), 3, cv2.LINE_AA)
             # plt.imshow(result)
             # plt.show()
             if  max_area < area:
                 max_area = area
                 max_length = arclen
                 longest_cnt = cnt
-    result = image.copy()
+    # result = image.copy()
 
     # plt.imshow(result)
     # plt.show()
@@ -80,7 +80,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         approx = cv2.approxPolyDP(longest_cnt, arclen * epsilon, True)
     except:
         return None
-    cv2.drawContours(result, [approx], -1, (255, 255, 0), 3, cv2.LINE_AA)
+    # cv2.drawContours(result, [approx], -1, (0,0, 0), 3, cv2.LINE_AA)
     # plt.imshow(result)
     # plt.title("Red region has {:d} corners".format(len(approx)))
     # plt.show()
@@ -102,11 +102,12 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
 
     # 新しい近似を描画する
     new_approx = np.array(new_approx)
-    cv2.drawContours(result, [np.array(new_approx)], -1, (0, 0, 255), 3, cv2.LINE_AA)
+    # cv2.drawContours(result, [np.array(new_approx)], -1, (0, 0, 0), 3, cv2.LINE_AA)
     from sklearn.preprocessing import StandardScaler
         
     x, y, w, h = cv2.boundingRect(new_approx)
-    cropped = image[y:y+h, x:x+w]
+    # cropped = image[y:y+h, x:x+w]
+    cropped = result[y:y+h, x:x+w]
     new_approx=new_approx-(x,y)
     src_pts = new_approx.reshape((-1, 2)).astype("float32")
     center = np.mean(src_pts, axis=0)
@@ -165,6 +166,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # edge = cv2.erode(edge, np.ones((3, 3), dtype=edge.dtype))
     # 輪郭を検出する
     contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # contours, hierarchy = cv2.findContours(edge, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     # plt.imshow(binary, cmap="gray")
     # plt.show()
