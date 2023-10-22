@@ -44,7 +44,7 @@ def count_violations(board):
                     violations += k_cnt
     return violations
 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=245,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=.46, tileGridSize2=7,n_dilate=4,n_erode=3,plt_res2=0,first_clahe=False,clipLimit1=.5,tileGridSize1=95,bilateral=1,mean_denoise=1,clahe_time1=1,clahe_time2=2,pass_image=0,plt_res3=0):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close=0,prior_close=False,trim_percentage=0.007,mean_white_axis=0,arc_epsilon=5e-2,erase_line=1,white_thres=245,otsu_times=1.05,clf_f_name="SVC",pixel_f=150,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,ret_num=False,clipLimit2=.46, tileGridSize2=7,n_dilate=4,n_erode=3,plt_res2=0,first_clahe=False,clipLimit1=.5,tileGridSize1=95,bilateral=1,mean_denoise=1,clahe_time1=1,clahe_time2=2,pass_image=0,plt_res3=0,plt_res1=0):
 
     if not pass_image:
         image = cv2.imread(image, cv2.IMREAD_COLOR)
@@ -64,7 +64,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     trim_width = int(width * trim_percentage)
     trim_height = int(height * trim_percentage)
     image = image[trim_height:height - trim_height, trim_width:width - trim_width]
-    color = [255, 255, 255]
+
 # パディングを追加する
 
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -95,7 +95,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # plt.imshow(edge, cmap="gray")
     # plt.title("After morphology operation".format(thr))
     # plt.show()
-    contours, _ = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(edge, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     result = image.copy()
     # cv2.drawContours(result, contours, -1, (0,0,0), 3, cv2.LINE_AA)
     # plt.imshow(result)
@@ -142,9 +142,10 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     approx = cv2.approxPolyDP(longest_cnt, arclen * epsilon, True) 
     # cv2.drawContours(result, [approx], -1, (0,0,0), 3, cv2.LINE_AA)
     cv2.drawContours(result, [longest_cnt], -1, (0,0,0), 3, cv2.LINE_AA)
-    # plt.imshow(result)
-    # plt.title("Red region has {:d} corners".format(len(approx)))
-    # plt.show()
+    if plt_res1:
+        plt.imshow(result)
+        plt.title("Red region has {:d} corners".format(len(approx)))
+        plt.show()
     # print(len(approx))
     # 輪郭線の重心を計算する
     M = cv2.moments(approx)
@@ -171,7 +172,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     x, y, w, h = cv2.boundingRect(new_approx)
     # cropped = image[y:y+h, x:x+w]
     h,w= result.shape[:2]
-    padding=50
+    padding=100
+    color = [255, 255, 255] #白
     result= cv2.copyMakeBorder(result, padding,padding,padding,padding, cv2.BORDER_CONSTANT, value=color)
     cropped = result[y+padding:y+padding+h, x+padding:x+padding+w]
     # plt.imshow(cropped)
@@ -192,8 +194,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     aspect = abs(w) / abs(h)
 
     # 新しい画像サイズを設定
-    # new_w = int(1000*aspect)
-    new_w = 1000
+    new_w = int(1000*aspect)
+    # new_w = 1000
     new_h = 1000
     # dst_pts = np.array([(0, 0), (0, new_h), (new_w, new_h), (new_w, 0)], dtype="float32")
     dst_pts = np.array([(0, 0), (new_w, 0), (new_w, new_h), (0, new_h)], dtype="float32")
@@ -202,7 +204,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     try:
         warp = cv2.getPerspectiveTransform(src_pts, dst_pts)
         result = cv2.warpPerspective(cropped, warp, (new_w, new_h))
-        # result=cv2.resize(result, (1000,1000), interpolation=cv2.INTER_AREA)
+        result=cv2.resize(result, (1000,1000), interpolation=cv2.INTER_AREA)
     except:
         return -1
     
@@ -283,13 +285,14 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
                 cv2.putText(res2, str(count), (points[0][0],points[0][1]), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,0), 3, cv2.LINE_AA)
     if ret_num:
         return count
-    if count !=9:
-        print("count is not 9")
-        return None
-    # print(count)
     if plt_res2:
         plt.imshow(res2)
         plt.show()
+    if count !=9:
+        print("count is not 9 but",count)
+        return None
+    # print(count)
+
     
     # contoursのソート
     # 左上の輪郭を取得する
@@ -394,9 +397,9 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             aspect = abs(w) / abs(h)
 
             # 新しい画像サイズを設定
-            # new_w = int(100*aspect)
-            new_w = 1000
-            new_h = 1000
+            new_w = int(600*aspect)
+            # new_w = 1000
+            new_h = 600
             # dst_pts = np.array([(0, 0), (0, new_h), (new_w, new_h), (new_w, 0)], dtype="float32")
             dst_pts = np.array([(0, 0), (new_w, 0), (new_w, new_h), (0, new_h)], dtype="float32")
 
