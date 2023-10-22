@@ -126,9 +126,9 @@ def solve(image):
                 break
             ans=np.array(solution)
     except:
-        # return np.ones((9,9),dtype=np.int32)
+        return np.ones((9,9),dtype=np.int32)
 
-        
+
         ### 候補3つ
         # K=min(9,len(potential_miss))
         # max_trial=200
