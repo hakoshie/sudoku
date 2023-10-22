@@ -127,29 +127,32 @@ def solve(image):
             ans=np.array(solution)
     except:
         # return np.ones((9,9),dtype=np.int32)
-        K=min(9,len(potential_miss))
-        max_trial=200
-        n_trial=0
-        for i in range(3**K):
-            if n_trial>=max_trial:
-                break
-            candidate_idx = [(i // 3**j) % 3 for j in range(K)]
-            problem_tmp=problem.copy()
-            for j,idx in enumerate(candidate_idx):
-                i_x,j_y,_=potential_miss[j]
-                num_ij=problem[i_x][j_y]
-                problem_tmp[i_x][j_y]=candidates[num_ij][idx]
-            if violation_check(problem_tmp):
-                n_trial+=1
-                try:
-                    for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
-                        if ans is not None:
-                            break
-                        ans=np.array(solution)
-                    if ans is not None:
-                        break
-                except:
-                    continue
+
+        
+        ### 候補3つ
+        # K=min(9,len(potential_miss))
+        # max_trial=200
+        # n_trial=0
+        # for i in range(3**K):
+        #     if n_trial>=max_trial:
+        #         break
+        #     candidate_idx = [(i // 3**j) % 3 for j in range(K)]
+        #     problem_tmp=problem.copy()
+        #     for j,idx in enumerate(candidate_idx):
+        #         i_x,j_y,_=potential_miss[j]
+        #         num_ij=problem[i_x][j_y]
+        #         problem_tmp[i_x][j_y]=candidates[num_ij][idx]
+        #     if violation_check(problem_tmp):
+        #         n_trial+=1
+        #         try:
+        #             for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
+        #                 if ans is not None:
+        #                     break
+        #                 ans=np.array(solution)
+        #             if ans is not None:
+        #                 break
+        #         except:
+        #             continue
     if ans is None:
         return np.ones((9,9),dtype=np.int32)
     
