@@ -99,27 +99,28 @@ def solve(image):
         problem1=np.ones((9,9),dtype=np.int32)  
     # print(problem1.shape)
     problem2=np.array(recognize.recognize(image))
-    # 違反回数で降順ソート
+    
     if count_violations(problem1)>=count_violations(problem2):
         problem=problem2
     else:
         problem=problem1
     violations=count_violations_ij(problem)
+    # 違反回数で降順ソート
     # sorted_violations = sorted(violations, key=lambda x: x[2], reverse=True)
     sorted_violations = sorted(violations, key=lambda x: x[2])
     # 上位5つのタプルを取得
     # potential_miss = sorted_violations[:10]
 
-    candidates=[[0, 5, 0],
-                [1, 4, 0],
-                [2, 3, 0],
-                [3, 1, 0],
-                [4, 9, 0],
-                [5, 9, 0],
-                [6, 8, 0],
-                [7, 2, 0],
-                [8, 6, 0],
-                [9, 5, 0]]
+    candidates=[[0, 1, 2, 4, 3, 7, 9, 5, 8, 6],
+                [1, 3, 7, 5, 2, 4, 9, 6, 0, 8],
+                [2, 3, 7, 8, 4, 1, 6, 5, 9, 0],
+                [3, 2, 5, 9, 1, 8, 7, 4, 6, 0],
+                [4, 6, 1, 8, 3, 5, 2, 9, 7, 0],
+                [5, 6, 9, 8, 3, 4, 2, 7, 1, 0],
+                [6, 5, 8, 4, 9, 2, 7, 1, 3, 0],
+                [7, 2, 1, 3, 9, 4, 8, 6, 5, 0],
+                [8, 6, 5, 9, 3, 2, 4, 1, 7, 0],
+                [9, 8, 2, 7, 3, 5, 4, 6, 1, 0]]
     ans=None
     try:
         for solution in sudoku_solver.solve_sudoku((3,3),problem):
@@ -129,42 +130,69 @@ def solve(image):
     except:
         # return np.ones((9,9),dtype=np.int32)
         K=min(40,len(sorted_violations))
-        # print(K)
-        max_value = 2**K
-        max_bit_count = 3
-        max_trial=200
-        # count = 0
-        trial_bits=[]
-        for i in range(max_bit_count + 1):
-            combinations = list(itertools.combinations(range(K), i))
-            for comb in combinations:
-                num = sum(1 << j for j in comb)
-                if num <= max_value:
-                    # count += 1
-                    trial_bits.append(num)
-        n_trial=0
-        for num in trial_bits:
-            if n_trial>=max_trial:
-                break
-            bits=[int(bit) for bit in bin(num)[2:].zfill(K)]
+
+        violations_min=count_violations(problem)
+        problem_t=problem.copy()
+        for i in range(K):
+            i_x,j_y,_=sorted_violations[i]
+            initial_value=problem[i_x][j_y]
             problem_tmp=problem.copy()
-            for i,bit in enumerate(bits):
-                if bit==1:
-                    i_x,j_y,_=sorted_violations[i]
-                    problem_tmp[i_x][j_y]=0
-            if violation_check(problem_tmp):
-                n_trial+=1
-                try:
-                    for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
-                        if ans is not None:
-                            break
-                        ans=np.array(solution)
-                    # print(n_trial)
+            for j in range(10):
+                problem_tmp[i_x][j_y]=candidates[initial_value][j]
+                violations_tmp=count_violations(problem_tmp)
+                if violations_tmp<violations_min:
+                    violations_min=violations_tmp
+                    problem_t[i_x][j_y]=candidates[initial_value][j]
+                    if violations_min==0:
+                        break
+            if violations_min==0:
+                break
+
+                    
+        if violation_check(problem_t):
+            try:
+                for solution in sudoku_solver.solve_sudoku((3,3),problem_t):
                     if ans is not None:
                         break
+                    ans=np.array(solution)
+            except:
+                return np.ones((9,9),dtype=np.int32)
+        # print(K)
+        # max_value = 2**K
+        # max_bit_count = 4
+        # max_trial=200
+        # # count = 0
+        # trial_bits=[]
+        # for i in range(max_bit_count + 1):
+        #     combinations = list(itertools.combinations(range(K), i))
+        #     for comb in combinations:
+        #         num = sum(1 << j for j in comb)
+        #         if num <= max_value:
+        #             # count += 1
+        #             trial_bits.append(num)
+        # n_trial=0
+        # for num in trial_bits:
+        #     if n_trial>=max_trial:
+        #         break
+        #     bits=[int(bit) for bit in bin(num)[2:].zfill(K)]
+        #     problem_tmp=problem.copy()
+        #     for i,bit in enumerate(bits):
+        #         if bit==1:
+        #             i_x,j_y,_=sorted_violations[i]
+        #             problem_tmp[i_x][j_y]=0
+        #     if violation_check(problem_tmp):
+        #         n_trial+=1
+        #         try:
+        #             for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
+        #                 if ans is not None:
+        #                     break
+        #                 ans=np.array(solution)
+        #             # print(n_trial)
+        #             if ans is not None:
+        #                 break
 
-                except:
-                    continue
+        #         except:
+        #             continue
         
         ### 候補3つ
         # K=min(9,len(potential_miss))
