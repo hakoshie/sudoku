@@ -112,7 +112,7 @@ def solve(image):
     # potential_miss = sorted_violations[:10]
 
     candidates=[[0, 1, 2, 4, 3, 7, 9, 5, 8, 6],
-                [1, 3, 7, 5, 2, 4, 9, 6, 0, 8],
+                [1, 3, 7, 5, 2, 4, 9, 6, 8, 0],
                 [2, 3, 7, 8, 4, 1, 6, 5, 9, 0],
                 [3, 2, 5, 9, 1, 8, 7, 4, 6, 0],
                 [4, 6, 1, 8, 3, 5, 2, 9, 7, 0],
@@ -133,30 +133,37 @@ def solve(image):
 
         violations_min=count_violations(problem)
         problem_t=problem.copy()
+        board_list=[]
         for i in range(K):
             i_x,j_y,_=sorted_violations[i]
             initial_value=problem[i_x][j_y]
             problem_tmp=problem.copy()
-            for j in range(10):
+            for j in range(9):
                 problem_tmp[i_x][j_y]=candidates[initial_value][j]
                 violations_tmp=count_violations(problem_tmp)
                 if violations_tmp<violations_min:
                     violations_min=violations_tmp
                     problem_t[i_x][j_y]=candidates[initial_value][j]
                     if violations_min==0:
-                        break
-            if violations_min==0:
-                break
+                        board_list.append(problem_t.copy())
+            # if violations_min==0:
+            #     break
 
-                    
-        if violation_check(problem_t):
-            try:
-                for solution in sudoku_solver.solve_sudoku((3,3),problem_t):
-                    if ans is not None:
+        for board in board_list[:100]:                   
+            if violation_check(board):
+                try:
+                    cnt=0
+                    for solution in sudoku_solver.solve_sudoku((3,3),board):
+                        ans=np.array(solution)
+                        cnt+=1
+                        if cnt>1:
+                            break
+                    if cnt>1:
+                        ans=None
+                    elif cnt==1:
                         break
-                    ans=np.array(solution)
-            except:
-                return np.ones((9,9),dtype=np.int32)
+                except:
+                    continue
         # print(K)
         # max_value = 2**K
         # max_bit_count = 4
