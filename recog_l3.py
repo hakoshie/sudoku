@@ -65,23 +65,20 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     trim_height = int(height * trim_percentage)
     image = image[trim_height:height - trim_height, trim_width:width - trim_width]
 
-# パディングを追加する
 
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
     gray= cv2.bilateralFilter(gray, 11, 2,2)
     # gray_gb = cv2.GaussianBlur(gray, None, 2.0)
+
+    # ヒストグラム平坦化
     clahe = cv2.createCLAHE(clipLimit=clipLimit1, tileGridSize=(tileGridSize1,tileGridSize1))
     for i in range(clahe_time1):
         gray = clahe.apply(gray)
     # gray = cv2.equalizeHist(gray)
-    # ぼかし処理
-
-
     # gray_gb =cv2.medianBlur(gray_gb, 5)
     gray = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
     # 大津の二値化
-
     thr, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)
     new_thr = min(int(thr * otsu_times), 255)
     _, binary = cv2.threshold(gray, new_thr, 255, cv2.THRESH_BINARY)
@@ -104,7 +101,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
     # # plt.imshow(image)
     # # plt.show()
-    longest_cnt = None
+    largest_cnt = None
     max_length = 0.0
     max_area = 0.0
     # result = image.copy()
@@ -132,16 +129,16 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             if  max_area < area and is_square(cnt,sides):
                 max_area = area
                 max_length = arclen
-                longest_cnt = cnt
+                largest_cnt = cnt
     # result = image.copy()
 
     # # plt.imshow(result)
     # # plt.show()
     # # print(len(longest_cnt))
-    arclen = cv2.arcLength(longest_cnt, True)
-    approx = cv2.approxPolyDP(longest_cnt, arclen * epsilon, True) 
+    arclen = cv2.arcLength(largest_cnt, True)
+    approx = cv2.approxPolyDP(largest_cnt, arclen * epsilon, True) 
     # cv2.drawContours(result, [approx], -1, (0,0,0), 3, cv2.LINE_AA)
-    cv2.drawContours(result, [longest_cnt], -1, (0,0,0), 3, cv2.LINE_AA)
+    cv2.drawContours(result, [largest_cnt], -1, (0,0,0), 3, cv2.LINE_AA)
     if plt_res1:
         plt.imshow(result)
         plt.title("Red region has {:d} corners".format(len(approx)))
@@ -152,7 +149,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     cx = int(M['m10'] / M['m00'])
     cy = int(M['m01'] / M['m00'])
 
-    # 各点に対して、重心からの距離を計算し、1.1倍した点を取得する
+    # 各点に対して、重心からの距離を計算し、1.2倍した点を取得する
     new_approx = []
     for point in approx:
         x, y = point[0]
@@ -168,10 +165,13 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # plt.imshow(result)
     # plt.title("Red region has {:d} corners".format(len(new_approx)))
     # plt.show()
-    # さっきのところを切り取って射影変換    
+    ##################################
+    ## さっきのところを切り取って射影変換
+    ##################################    
     x, y, w, h = cv2.boundingRect(new_approx)
     # cropped = image[y:y+h, x:x+w]
     h,w= result.shape[:2]
+    # パディングを追加する
     padding=100
     color = [255, 255, 255] #白
     result= cv2.copyMakeBorder(result, padding,padding,padding,padding, cv2.BORDER_CONSTANT, value=color)
@@ -289,7 +289,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         plt.imshow(res2)
         plt.show()
     if count !=9:
-        # print("count is not 9 but",count)
+        print("count is not 9 but",count)
         return None
     # print(count)
 
@@ -332,7 +332,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             squares.append([next_square])
             current_pos = next_square
             not_visited.remove(next_square)
-    # 各輪郭に対してx軸方向に近い順に8つの輪郭を選択する
+    # 各輪郭に対してx軸方向に近い順に2つの輪郭を選択する
     res3 = result.copy()
     count = 0
     # # print(squares)
@@ -416,6 +416,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
                     problem_i=i*3+k
                     problem_j=j*3+l
                     for m in range(3):
+                        # 回転させる
                         digit_square_rot=np.rot90(digit_square,m-1)
                         if m==2:
                             t_i=9-problem_j-1
@@ -440,6 +441,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     violations=[]
     for i in range(3):
         violations.append(count_violations(problems[i]))
+    # violationの最小のものを返す
     problem=problems[np.argmin(violations)]
     # print(problem,violations[np.argmin(violations)])
     return np.array(problem,dtype=np.int32)

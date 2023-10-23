@@ -82,7 +82,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     cv2.drawContours(result, contours, -1, (255, 0, 0), 3, cv2.LINE_AA)
     # # plt.imshow(result)
     # # plt.show()
-    longest_cnt = None
+    largest_cnt = None
     max_area = 0.0
     result = image.copy()
     for cnt in contours:
@@ -99,7 +99,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
             # # plt.show()
             if  max_area < area:
                 max_area = area
-                longest_cnt = cnt
+                largest_cnt = cnt
                     
 
     result = image.copy()
@@ -107,8 +107,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     # # plt.imshow(result)
     # # plt.show()
     # print(len(longest_cnt))
-    arclen = cv2.arcLength(longest_cnt, True)
-    approx = cv2.approxPolyDP(longest_cnt, arclen * arc_epsilon, True)
+    arclen = cv2.arcLength(largest_cnt, True)
+    approx = cv2.approxPolyDP(largest_cnt, arclen * arc_epsilon, True)
 
     cv2.drawContours(result, [approx], -1, (255, 255,255), 3, cv2.LINE_AA)
     # plt.imshow(result)
@@ -153,7 +153,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     result = result[trim_height:height - trim_height, trim_width:width - trim_width]
     # plt.imshow(result)
     if erase_line:
-        # 線を消す
+        # 線を消す場合
         gray=cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
         # Threshold the image to create a binary image
         # Smooth the image
@@ -208,7 +208,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
 
 
     if flip_judge:
-        # 回転の判定
+        # 回転の判定をする場合
         if clf_f is None:
             scaler_f = pd.read_pickle(f'./models/{clf_f_name}_flip_scaler.pickle')
             clf_f=pd.read_pickle(f'./models/{clf_f_name}_flip_clf.pickle')
@@ -272,6 +272,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
 
     binary=cv2.resize(binary,(pixel*9,pixel*9),interpolation=cv2.INTER_AREA)
     if flip_judge==0:
+        #回転の判定をせずに３パターン試す
         problems=[]
         violations=[]
         for k in range(3):
@@ -293,9 +294,11 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
                 problem.append(predicted_numbers[i:i+9])
             problems.append(problem)
             violations.append(count_violations(np.array(problem)))
+        # violationの小さいものを選ぶ
         idx=np.argmin(violations)
         problem=problems[idx]
     else:
+        # 回転の判定をすでにしている場合
         predicted_numbers = []
         for i in range(9):
             for j in range(9):
