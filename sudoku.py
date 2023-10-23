@@ -91,12 +91,7 @@ def violation_check(board):
     return True
 
 def solve(image):
-    try:
-        problem0=np.array(recog_l3.recognize(image,pass_image=True,draw_approx=0),dtype=np.int32)
-        if problem0.shape!=(9,9):
-            problem0=np.ones((9,9),dtype=np.int32)
-    except:
-        problem0=np.ones((9,9),dtype=np.int32)
+
     try:
         problem1=np.array(recog_l3.recognize(image,pass_image=True),dtype=np.int32)
         if problem1.shape!=(9,9):
@@ -105,10 +100,6 @@ def solve(image):
         problem1=np.ones((9,9),dtype=np.int32)  
     # print(problem1.shape)
     problem2=np.array(recognize.recognize(image))
-    if count_violations(problem0)>=count_violations(problem1):
-        problem1=problem1
-    else:
-        problem1=problem0
     if count_violations(problem1)>=count_violations(problem2):
         problem=problem2
     else:
@@ -135,9 +126,9 @@ def solve(image):
         [],# 0
         [],# 1
         [ 9],# 2
-        [ 5 ,9 ,0],#3
+        [ 5 ,9 ],#3
         [ 0],#4
-        [ 3 ,2,],#5
+        [ 3,0],#5
         [ 8],# 6
         [ 9],# 7
         [ 4],# 8

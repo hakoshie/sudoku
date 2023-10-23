@@ -59,7 +59,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         model_name="ensemble_MLPC"
         scaler = pd.read_pickle(f'./models/{model_name}_scaler.pickle')        
         clf = pd.read_pickle(f'./models/{model_name}_clf.pickle')
-    trim_percentage=0.002
+    trim_percentage=0.001
     height, width, channels = image.shape[:3]
     trim_width = int(width * trim_percentage)
     trim_height = int(height * trim_percentage)
@@ -172,7 +172,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
     # cropped = image[y:y+h, x:x+w]
     h,w= result.shape[:2]
     # パディングを追加する
-    padding=100
+    padding=150
     color = [255, 255, 255] #白
     result= cv2.copyMakeBorder(result, padding,padding,padding,padding, cv2.BORDER_CONSTANT, value=color)
     cropped = result[y+padding:y+padding+h, x+padding:x+padding+w]
@@ -195,8 +195,8 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
 
     # 新しい画像サイズを設定
     new_w = int(1000*aspect)
-    # new_w = 1000
-    new_h = 1000
+    new_w = 800
+    new_h = 800
     # dst_pts = np.array([(0, 0), (0, new_h), (new_w, new_h), (new_w, 0)], dtype="float32")
     dst_pts = np.array([(0, 0), (new_w, 0), (new_w, new_h), (0, new_h)], dtype="float32")
 
@@ -397,9 +397,9 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
             aspect = abs(w) / abs(h)
 
             # 新しい画像サイズを設定
-            new_w = int(600*aspect)
-            # new_w = 1000
-            new_h = 600
+            # new_w = int(1000*aspect)
+            new_w = 500
+            new_h = 500
             # dst_pts = np.array([(0, 0), (0, new_h), (new_w, new_h), (new_w, 0)], dtype="float32")
             dst_pts = np.array([(0, 0), (new_w, 0), (new_w, new_h), (0, new_h)], dtype="float32")
 
