@@ -92,6 +92,12 @@ def violation_check(board):
 
 def solve(image):
     try:
+        problem0=np.array(recog_l3.recognize(image,pass_image=True,draw_approx=0),dtype=np.int32)
+        if problem0.shape!=(9,9):
+            problem0=np.ones((9,9),dtype=np.int32)
+    except:
+        problem0=np.ones((9,9),dtype=np.int32)
+    try:
         problem1=np.array(recog_l3.recognize(image,pass_image=True),dtype=np.int32)
         if problem1.shape!=(9,9):
             problem1=np.ones((9,9),dtype=np.int32)
@@ -99,7 +105,10 @@ def solve(image):
         problem1=np.ones((9,9),dtype=np.int32)  
     # print(problem1.shape)
     problem2=np.array(recognize.recognize(image))
-    
+    if count_violations(problem0)>=count_violations(problem1):
+        problem1=problem1
+    else:
+        problem1=problem0
     if count_violations(problem1)>=count_violations(problem2):
         problem=problem2
     else:
@@ -161,7 +170,7 @@ def solve(image):
             if n_trial>=max_trial:
                 break
             bits=[int(bit) for bit in bin(num)[2:].zfill(K)]
-            cand_list=[]
+            candidate_list=[]
             index_list=[]
             for i,bit in enumerate(bits):
                 if bit==1:
@@ -169,9 +178,9 @@ def solve(image):
                     initial_value=problem[i_x][j_y]
                     if len(candidates[initial_value])!=0:
                         index_list.append((i_x,j_y))
-                        cand_list.append(candidates[initial_value])
+                        candidate_list.append(candidates[initial_value])
             combinations = []
-            for combination in itertools.product(*cand_list):
+            for combination in itertools.product(*candidate_list):
                 combinations.append(combination)
             for combination in combinations:
                 if n_trial>=max_trial:

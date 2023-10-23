@@ -30,7 +30,7 @@ def count_violations(board):
                     violations += k_cnt
     return violations
 
-def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close=1,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,white_thres=255,otsu_times=1.2,clf_f_name="SVClinear",pixel_f=30,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,flip_judge=0):
+def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close=1,prior_close=1,trim_percentage=0.008,mean_white_axis=0,arc_epsilon=5e-2,erase_line=0,white_thres=255,otsu_times=1.2,clf_f_name="SVClinear",pixel_f=30,clf_f=None,scaler_f=None,sigmaColor=2,sigmaSpace=2,flip_judge=0,draw_approx=1):
     # image:RGB image
     if pixel is None:
         pixel=60
@@ -109,8 +109,10 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=2,n_close
     # print(len(longest_cnt))
     arclen = cv2.arcLength(largest_cnt, True)
     approx = cv2.approxPolyDP(largest_cnt, arclen * arc_epsilon, True)
-
-    cv2.drawContours(result, [approx], -1, (255, 255,255), 3, cv2.LINE_AA)
+    if draw_approx:
+        cv2.drawContours(result, [approx], -1, (255, 255,255), 3, cv2.LINE_AA)
+    else:
+        cv2.drawContours(result, [largest_cnt], -1, (255, 255,255), 3, cv2.LINE_AA)
     # plt.imshow(result)
     # plt.title("Red region has {:d} corners".format(len(approx)))
     # plt.show()
