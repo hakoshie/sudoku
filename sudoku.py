@@ -106,21 +106,34 @@ def solve(image):
         problem=problem1
     violations=count_violations_ij(problem)
     # 違反回数で降順ソート
-    # sorted_violations = sorted(violations, key=lambda x: x[2], reverse=True)
-    sorted_violations = sorted(violations, key=lambda x: x[2])
+    sorted_violations = sorted(violations, key=lambda x: x[2], reverse=True)
+    # sorted_violations = sorted(violations, key=lambda x: x[2])
     # 上位5つのタプルを取得
     # potential_miss = sorted_violations[:10]
 
-    candidates=[[0, 1, 2, 4, 3, 7, 9, 5, 8, 6],
-                [1, 3, 7, 5, 2, 4, 9, 6, 8, 0],
-                [2, 3, 7, 8, 4, 1, 6, 5, 9, 0],
-                [3, 2, 5, 9, 1, 8, 7, 4, 6, 0],
-                [4, 6, 1, 8, 3, 5, 2, 9, 7, 0],
-                [5, 6, 9, 8, 3, 4, 2, 7, 1, 0],
-                [6, 5, 8, 4, 9, 2, 7, 1, 3, 0],
-                [7, 2, 1, 3, 9, 4, 8, 6, 5, 0],
-                [8, 6, 5, 9, 3, 2, 4, 1, 7, 0],
-                [9, 8, 2, 7, 3, 5, 4, 6, 1, 0]]
+    # candidates=[[0, 1, 2, 4, 3, 7, 9, 5, 8, 6],
+    #             [1, 3, 7, 5, 2, 4, 9, 6, 8, 0],
+    #             [2, 3, 7, 8, 4, 1, 6, 5, 9, 0],
+    #             [3, 2, 5, 9, 1, 8, 7, 4, 6, 0],
+    #             [4, 6, 1, 8, 3, 5, 2, 9, 7, 0],
+    #             [5, 6, 9, 8, 3, 4, 2, 7, 1, 0],
+    #             [6, 5, 8, 4, 9, 2, 7, 1, 3, 0],
+    #             [7, 2, 1, 3, 9, 4, 8, 6, 5, 0],
+    #             [8, 6, 5, 9, 3, 2, 4, 1, 7, 0],
+    #             [9, 8, 2, 7, 3, 5, 4, 6, 1, 0]]
+    
+    candidates=[
+        [0],
+        [1],
+        [2, 9],
+        [3, 5 ,9 ,0],
+        [4, 0],
+        [5, 3 ,2],
+        [6, 8],
+        [7, 9],
+        [8, 4],
+        [9, 5]]
+
     ans=None
     try:
         for solution in sudoku_solver.solve_sudoku((3,3),problem):
@@ -131,75 +144,92 @@ def solve(image):
         # return np.ones((9,9),dtype=np.int32)
         K=min(40,len(sorted_violations))
 
-        violations_min=count_violations(problem)
-        problem_t=problem.copy()
-        board_list=[]
-        for i in range(K):
-            i_x,j_y,_=sorted_violations[i]
-            initial_value=problem[i_x][j_y]
-            problem_tmp=problem.copy()
-            for j in range(9):
-                problem_tmp[i_x][j_y]=candidates[initial_value][j]
-                violations_tmp=count_violations(problem_tmp)
-                if violations_tmp<violations_min:
-                    violations_min=violations_tmp
-                    problem_t[i_x][j_y]=candidates[initial_value][j]
-                    if violations_min==0:
-                        board_list.append(problem_t.copy())
-            # if violations_min==0:
-            #     break
-
-        for board in board_list[:100]:                   
-            if violation_check(board):
-                try:
-                    cnt=0
-                    for solution in sudoku_solver.solve_sudoku((3,3),board):
-                        ans=np.array(solution)
-                        cnt+=1
-                        if cnt>1:
-                            break
-                    if cnt>1:
-                        ans=None
-                    elif cnt==1:
-                        break
-                except:
-                    continue
-        # print(K)
-        # max_value = 2**K
-        # max_bit_count = 4
-        # max_trial=200
-        # # count = 0
-        # trial_bits=[]
-        # for i in range(max_bit_count + 1):
-        #     combinations = list(itertools.combinations(range(K), i))
-        #     for comb in combinations:
-        #         num = sum(1 << j for j in comb)
-        #         if num <= max_value:
-        #             # count += 1
-        #             trial_bits.append(num)
-        # n_trial=0
-        # for num in trial_bits:
-        #     if n_trial>=max_trial:
-        #         break
-        #     bits=[int(bit) for bit in bin(num)[2:].zfill(K)]
+        # violations_min=count_violations(problem)
+        # problem_t=problem.copy()
+        # board_list=[]
+        # for i in range(K):
+        #     i_x,j_y,_=sorted_violations[i]
+        #     initial_value=problem[i_x][j_y]
         #     problem_tmp=problem.copy()
-        #     for i,bit in enumerate(bits):
-        #         if bit==1:
-        #             i_x,j_y,_=sorted_violations[i]
-        #             problem_tmp[i_x][j_y]=0
-        #     if violation_check(problem_tmp):
-        #         n_trial+=1
-        #         try:
-        #             for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
-        #                 if ans is not None:
-        #                     break
-        #                 ans=np.array(solution)
-        #             # print(n_trial)
-        #             if ans is not None:
-        #                 break
+        #     for j in range(len(candidates[initial_value])):
+        #         problem_tmp[i_x][j_y]=candidates[initial_value][j]
+        #         violations_tmp=count_violations(problem_tmp)
+        #         if violations_tmp<violations_min:
+        #             violations_min=violations_tmp
+        #             problem_t[i_x][j_y]=candidates[initial_value][j]
+        #             if violations_min==0:
+        #                 board_list.append(problem_t.copy())
+        #     # if violations_min==0:
+        #     #     break
 
+        # for board in board_list[:1000]:                   
+        #     if violation_check(board):
+        #         try:
+        #             cnt=0
+        #             for solution in sudoku_solver.solve_sudoku((3,3),board):
+        #                 ans=np.array(solution)
+        #                 cnt+=1
+        #                 if cnt>1:
+        #                     break
+        #             if cnt>1:
+        #                 ans=None
+        #             elif cnt==1:
+        #                 break
         #         except:
         #             continue
+        # print(K)
+        max_value = 2**K
+        max_bit_count = 4
+        max_trial=200
+        # count = 0
+        trial_bits=[]
+        # 潜在的な誤りのbit列を生成
+        for i in range(max_bit_count + 1):
+            combinations = list(itertools.combinations(range(K), i))
+            for comb in combinations:
+                num = sum(1 << j for j in comb)
+                if num <= max_value:
+                    # count += 1
+                    trial_bits.append(num)
+        n_trial=0
+        for num in trial_bits:
+            if n_trial>=max_trial:
+                break
+            bits=[int(bit) for bit in bin(num)[2:].zfill(K)]
+            cand_list=[]
+            index_list=[]
+            for i,bit in enumerate(bits):
+                if bit==1:
+                    i_x,j_y,_=sorted_violations[i]
+                    initial_value=problem[i_x][j_y]
+                    index_list.append((i_x,j_y))
+                    cand_list.append(candidates[initial_value])
+            combinations = []
+            for combination in itertools.product(*cand_list):
+                combinations.append(combination)
+            for combination in combinations:
+                if n_trial>=max_trial:
+                    break
+                problem_tmp=problem.copy()
+                for i,index in enumerate(index_list):
+                    i_x,j_y=index
+                    problem_tmp[i_x][j_y]=combination[i]                            
+                if violation_check(problem_tmp):
+                    n_trial+=1
+                    try:
+                        cnt=0
+                        for solution in sudoku_solver.solve_sudoku((3,3),problem_tmp):
+                            cnt+=1
+                            ans=np.array(solution)
+                            if cnt>1:
+                                break
+                        # print(n_trial)
+                        if cnt==1:
+                            break
+                        else:
+                            ans=None
+                    except:
+                        continue
         
         ### 候補3つ
         # K=min(9,len(potential_miss))
@@ -227,5 +257,5 @@ def solve(image):
         #             continue
     if ans is None:
         return np.ones((9,9),dtype=np.int32)
-    
+    # print(ans)
     return np.array(ans,dtype=np.int32)
