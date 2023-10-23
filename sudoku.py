@@ -123,16 +123,16 @@ def solve(image):
     #             [9, 8, 2, 7, 3, 5, 4, 6, 1, 0]]
     
     candidates=[
-        [0],
-        [1],
-        [2, 9],
-        [3, 5 ,9 ,0],
-        [4, 0],
-        [5, 3 ,2],
-        [6, 8],
-        [7, 9],
-        [8, 4],
-        [9, 5]]
+        [],
+        [],
+        [ 9],
+        [ 5 ,9 ,0],
+        [ 0],
+        [ 3 ,2],
+        [ 8],
+        [ 9],
+        [ 4],
+        [ 5]]
 
     ans=None
     try:
@@ -143,41 +143,6 @@ def solve(image):
     except:
         # return np.ones((9,9),dtype=np.int32)
         K=min(40,len(sorted_violations))
-
-        # violations_min=count_violations(problem)
-        # problem_t=problem.copy()
-        # board_list=[]
-        # for i in range(K):
-        #     i_x,j_y,_=sorted_violations[i]
-        #     initial_value=problem[i_x][j_y]
-        #     problem_tmp=problem.copy()
-        #     for j in range(len(candidates[initial_value])):
-        #         problem_tmp[i_x][j_y]=candidates[initial_value][j]
-        #         violations_tmp=count_violations(problem_tmp)
-        #         if violations_tmp<violations_min:
-        #             violations_min=violations_tmp
-        #             problem_t[i_x][j_y]=candidates[initial_value][j]
-        #             if violations_min==0:
-        #                 board_list.append(problem_t.copy())
-        #     # if violations_min==0:
-        #     #     break
-
-        # for board in board_list[:1000]:                   
-        #     if violation_check(board):
-        #         try:
-        #             cnt=0
-        #             for solution in sudoku_solver.solve_sudoku((3,3),board):
-        #                 ans=np.array(solution)
-        #                 cnt+=1
-        #                 if cnt>1:
-        #                     break
-        #             if cnt>1:
-        #                 ans=None
-        #             elif cnt==1:
-        #                 break
-        #         except:
-        #             continue
-        # print(K)
         max_value = 2**K
         max_bit_count = 4
         max_trial=200
@@ -202,8 +167,9 @@ def solve(image):
                 if bit==1:
                     i_x,j_y,_=sorted_violations[i]
                     initial_value=problem[i_x][j_y]
-                    index_list.append((i_x,j_y))
-                    cand_list.append(candidates[initial_value])
+                    if len(candidates[initial_value])!=0:
+                        index_list.append((i_x,j_y))
+                        cand_list.append(candidates[initial_value])
             combinations = []
             for combination in itertools.product(*cand_list):
                 combinations.append(combination)
@@ -225,12 +191,16 @@ def solve(image):
                                 break
                         # print(n_trial)
                         if cnt==1:
+                            # print(n_trial)
+                            # print(ans)
+                            return np.array(ans,dtype=np.int32)
                             break
                         else:
                             ans=None
                     except:
                         continue
-        
+                if ans is not None:
+                    break
         ### 候補3つ
         # K=min(9,len(potential_miss))
         # max_trial=200
@@ -255,7 +225,8 @@ def solve(image):
         #                 break
         #         except:
         #             continue
+    # print(ans)
     if ans is None:
         return np.ones((9,9),dtype=np.int32)
-    # print(ans)
+
     return np.array(ans,dtype=np.int32)
