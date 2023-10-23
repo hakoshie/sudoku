@@ -106,8 +106,8 @@ def solve(image):
         problem=problem1
     violations=count_violations_ij(problem)
     # 違反回数で降順ソート
-    sorted_violations = sorted(violations, key=lambda x: x[2], reverse=True)
-    # sorted_violations = sorted(violations, key=lambda x: x[2])
+    # sorted_violations = sorted(violations, key=lambda x: x[2], reverse=True)
+    sorted_violations = sorted(violations, key=lambda x: x[2])
     # 上位5つのタプルを取得
     # potential_miss = sorted_violations[:10]
 
@@ -124,15 +124,15 @@ def solve(image):
     
     candidates=[
         [],# 0
-        [3,7],# 1
-        [ 9,7],# 2
+        [],# 1
+        [ 9],# 2
         [ 5 ,9 ,0],#3
-        [ 0,6],#4
-        [ 3 ,2],#5
-        [ 8,5],# 6
-        [ 9,2,1],# 7
-        [ 4,6,5],# 8
-        [ 5,8,2]]# 9
+        [ 0],#4
+        [ 3 ,2,],#5
+        [ 8],# 6
+        [ 9],# 7
+        [ 4],# 8
+        [ 5]]# 9
 
     ans=None
     try:
