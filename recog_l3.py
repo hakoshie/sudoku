@@ -289,7 +289,7 @@ def recognize(image,clf=None,scaler=None,pixel=20,ret_img=False,n_open=0,n_close
         plt.imshow(res2)
         plt.show()
     if count !=9:
-        print("count is not 9 but",count)
+        # print("count is not 9 but",count)
         return None
     # print(count)
 
